@@ -2,178 +2,174 @@ use error::*;
 use token::*;
 use ast::*;
 
-#[cfg(test)]
-mod tests {
-    use parser::*;
-    #[test]
-    fn null_parse() {
-        assert_eq!(Parser::parse(&vec![]).unwrap(), AstNode::Mod(vec![]))
-    }
-}
-
-pub struct Parser<'a> {
+struct TokenIterator<'a> {
     tokens: &'a Vec<Token>,
     pos: usize,
 }
 
-impl<'a> Parser<'a> {
-    fn new(tokens: &'a Vec<Token>) -> Parser {
-        Parser { tokens, pos: 0 }
+impl<'a> TokenIterator<'a> {
+    pub fn new(tokens: &'a Vec<Token>) -> Self {
+        TokenIterator { tokens, pos: 0 }
     }
 
-    pub fn parse(tokens: &'a Vec<Token>) -> AbstractSyntaxTreeResult {
-        Parser::new(tokens).parse_mod()
-    }
-
-    fn parse_unary_expr(&mut self) -> Result<Expr, CompilerError> {
-        let token = self.peek()?.clone();
-        match token.token_type {
-            TokenType::Grammar(Grammar::Plus) => {
-                Err(CompilerError::with_loc("Unary plus is invalid", token.loc))
-            }
-            _ => Ok(Expr::Primary(self.parse_primary()?)),
+    pub fn peek(&self) -> Result<&Token, CompilerError> {
+        if self.pos < self.tokens.len() {
+            Ok(&self.tokens[self.pos])
+        } else {
+            Err(CompilerError::new("Parser: Unexpected end of tokens"))
         }
     }
 
-    fn parse_primary(&mut self) -> Result<Primary, CompilerError> {
-        let token = self.advance()?.clone();
-        match token.token_type {
-            TokenType::Identifier(id) => Ok(Primary::Identifier(Identifier(id))),
-            TokenType::Integer(i) => Ok(Primary::Integer(i)),
-            TokenType::If => Ok(Primary::If(If(
-                self.parse_expr()?,
-                self.parse_scoped_block()?,
-                None,
-            ))),
-            _ => Err(CompilerError::with_loc("Invalid primary", token.loc)),
+    pub fn move_required(&mut self, token_type: &TokenType) -> Result<(), CompilerError> {
+        self.peek()?.require(token_type)?;
+        self.move_next().unwrap(); // If peek is successful, moving should be as well.
+        Ok(())
+    }
+
+    pub fn move_next(&mut self) -> Result<(), CompilerError> {
+        if self.pos < self.tokens.len() {
+            self.pos += 1;
+            Ok(())
+        } else {
+            Err(CompilerError::new("Parser: Unexpected end of tokens"))
         }
     }
 
-    fn parse_expr(&mut self) -> Result<Box<Expr>, CompilerError> {
-        let lhs = Box::new(self.parse_unary_expr()?);
-        self.parse_bin_expr(lhs, 0)
+    pub fn empty(&self) -> bool {
+        self.pos >= self.tokens.len()
     }
+}
 
-    fn parse_bin_expr(
-        &mut self,
-        lhs: Box<Expr>,
-        min_priority: usize,
-    ) -> Result<Box<Expr>, CompilerError> {
-        fn is_bin_op(token: &TokenType) -> bool {
-            match *token {
-                TokenType::Grammar(ref g) => match *g {
-                    Grammar::Plus | Grammar::Slash | Grammar::Minus | Grammar::Star => true,
-                    _ => false,
-                },
+pub fn parse<'a>(tokens: &'a Vec<Token>) -> Result<AstNode, CompilerError> {
+    parse_mod(TokenIterator::new(tokens))
+}
+
+fn parse_unary_expr(tokens: &mut TokenIterator) -> Result<Expr, CompilerError> {
+    let token = tokens.peek()?.clone();
+    match token.token_type {
+        TokenType::Grammar(Grammar::Plus) => Err(CompilerError::with_loc(
+            "Parser: Unary plus is invalid",
+            token.loc,
+        )),
+
+        _ => Ok(Expr::Primary(parse_primary(tokens)?)),
+    }
+}
+
+fn parse_primary(tokens: &mut TokenIterator) -> Result<Primary, CompilerError> {
+    let token = tokens.peek()?.clone();
+    tokens.move_next().unwrap();
+    match token.token_type {
+        TokenType::Identifier(id) => Ok(Primary::Identifier(Identifier(id))),
+        TokenType::Integer(i) => Ok(Primary::Integer(i)),
+        TokenType::If => Ok(Primary::If(If(
+            parse_expr(tokens)?,
+            parse_scoped_block(tokens)?,
+            None,
+        ))),
+        _ => Err(CompilerError::with_loc(
+            "Parser: Invalid primary",
+            token.loc,
+        )),
+    }
+}
+
+fn parse_expr(tokens: &mut TokenIterator) -> Result<Box<Expr>, CompilerError> {
+    let lhs = Box::new(parse_unary_expr(tokens)?);
+    parse_bin_expr(tokens, lhs, 0)
+}
+
+fn parse_bin_expr(
+    tokens: &mut TokenIterator,
+    lhs: Box<Expr>,
+    min_priority: usize,
+) -> Result<Box<Expr>, CompilerError> {
+    fn is_bin_op(token: &TokenType) -> bool {
+        match *token {
+            TokenType::Grammar(ref g) => match *g {
+                Grammar::Plus | Grammar::Slash | Grammar::Minus | Grammar::Star => true,
                 _ => false,
-            }
+            },
+            _ => false,
         }
+    }
 
-        fn precedence(token: &TokenType) -> Result<usize, CompilerError> {
-            match *token {
-                TokenType::Grammar(ref g) => match *g {
-                    Grammar::Plus | Grammar::Minus => Ok(150),
-                    Grammar::Star | Grammar::Slash => Ok(200),
-                    _ => Err(CompilerError::ice()),
-                },
-
+    fn precedence(token: &TokenType) -> Result<usize, CompilerError> {
+        match *token {
+            TokenType::Grammar(ref g) => match *g {
+                Grammar::Plus | Grammar::Minus => Ok(150),
+                Grammar::Star | Grammar::Slash => Ok(200),
                 _ => Err(CompilerError::ice()),
+            },
+
+            _ => Err(CompilerError::ice()),
+        }
+    }
+
+    let res = lhs;
+    let lookahead = tokens.peek()?;
+    while is_bin_op(&lookahead.token_type) && precedence(&lookahead.token_type)? > min_priority {
+        unimplemented!()
+    }
+
+    Ok(res)
+}
+
+fn parse_scoped_block(tokens: &mut TokenIterator) -> Result<ScopedBlock, CompilerError> {
+    tokens.move_required(&TokenType::Grammar(Grammar::OpenBrace))?;
+
+    let mut vec: Vec<AstNode> = Vec::new();
+    loop {
+        match tokens.peek()?.token_type {
+            TokenType::Grammar(Grammar::OpenBrace) => {
+                vec.push(AstNode::ScopedBlock(parse_scoped_block(tokens)?))
             }
-        }
 
-        let res = lhs;
-        let lookahead = self.peek()?;
-        while is_bin_op(&lookahead.token_type) && precedence(&lookahead.token_type)? > min_priority
-        {
-            unimplemented!()
-        }
+            TokenType::Grammar(Grammar::CloseBrace) => {
+                tokens.move_next().unwrap();
+                break;
+            }
 
-        Ok(res)
+            _ => vec.push(AstNode::Expr(Expr::unbox(parse_expr(tokens)?))),
+        };
     }
 
-    fn parse_scoped_block(&mut self) -> Result<ScopedBlock, CompilerError> {
-        self.advance()?
-            .require(&TokenType::Grammar(Grammar::OpenBrace))?;
+    Ok(ScopedBlock(vec))
+}
 
-        let mut vec: Vec<AstNode> = Vec::new();
-        loop {
-            let token = self.peek()?.clone();
-            vec.push(match token.token_type {
-                TokenType::Grammar(Grammar::OpenBrace) => {
-                    Ok(AstNode::ScopedBlock(self.parse_scoped_block()?))
+fn parse_mod(mut tokens: TokenIterator) -> Result<AstNode, CompilerError> {
+    let mut vec: Vec<AstNode> = Vec::new();
+    while !tokens.empty() {
+        let token = tokens.peek().unwrap().clone();
+        tokens.move_next().unwrap();
+        match token.token_type {
+            TokenType::Function => {
+                let Token { token_type, loc } = tokens.peek()?.clone();
+                if let TokenType::Identifier(name) = token_type {
+                    tokens.move_next().unwrap();
+                    tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
+                    tokens.move_required(&TokenType::Grammar(Grammar::CloseParen))?;
+
+                    vec.push(AstNode::Function(
+                        FunctionHeader::new(Identifier(name), Vec::new(), None),
+                        parse_scoped_block(&mut tokens)?,
+                    ));
+                } else {
+                    return Err(CompilerError::with_loc(
+                        "Parser: Expected Identifier but got something else",
+                        loc,
+                    ));
                 }
+            }
 
-                TokenType::Grammar(Grammar::CloseBrace) => {
-                    self.advance()?;
-                    break;
-                }
-
-                _ => Ok(AstNode::Expr(Expr::unbox(self.parse_expr()?))),
-            }?);
-        }
-
-        Ok(ScopedBlock(vec))
-    }
-
-    fn parse_mod(&mut self) -> AbstractSyntaxTreeResult {
-        let mut vec: Vec<AstNode> = Vec::new();
-        while self.has_tokens() {
-            let token = self.advance().unwrap().clone();
-            vec.push(match token.token_type {
-                TokenType::Function => {
-                    let name = self.require_identifier()?;
-                    self.advance()?
-                        .require(&TokenType::Grammar(Grammar::OpenParen))?;
-                    self.advance()?
-                        .require(&TokenType::Grammar(Grammar::CloseParen))?;
-                    Ok(AstNode::Function(
-                        FunctionHeader::new(name, Vec::new(), None),
-                        self.parse_scoped_block()?,
-                    ))
-                }
-
-                _ => Err(CompilerError::with_loc(
+            _ => {
+                return Err(CompilerError::with_loc(
                     "Parser: unexpected token for module",
                     token.loc,
-                )),
-            }?);
-        }
-
-        Ok(AstNode::Mod(vec))
+                ))
+            }
+        };
     }
 
-    fn has_tokens(&self) -> bool {
-        self.pos < self.tokens.len()
-    }
-
-    fn peek(&self) -> RefTokenResult {
-        if self.pos >= self.tokens.len() {
-            Err(CompilerError::new("Parser: Unexpected end of file"))
-        } else {
-            Ok(&self.tokens[self.pos])
-        }
-    }
-
-    fn require_identifier(&mut self) -> Result<Identifier, CompilerError> {
-        let token = self.advance()?.clone();
-
-        if let TokenType::Identifier(id) = token.token_type {
-            Ok(Identifier(id))
-        } else {
-            Err(CompilerError::with_loc(
-                "Parser: Expected Identifier, but got something else",
-                token.loc,
-            ))
-        }
-    }
-
-    fn advance(&mut self) -> RefTokenResult {
-        if self.pos >= self.tokens.len() {
-            Err(CompilerError::new("Parser: Unexpected end of file"))
-        } else {
-            let tok = &self.tokens[self.pos];
-            self.pos += 1;
-            Ok(tok)
-        }
-    }
+    Ok(AstNode::Mod(vec))
 }

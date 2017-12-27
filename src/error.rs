@@ -41,7 +41,3 @@ impl Error for CompilerError {
         "A compiler error has occurred"
     }
 }
-
-pub type RefTokenResult<'a> = Result<&'a ::token::Token, CompilerError>;
-
-pub type AbstractSyntaxTreeResult = Result<::ast::AstNode, CompilerError>;

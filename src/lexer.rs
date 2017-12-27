@@ -19,14 +19,8 @@ mod tests {
         assert_eq!(
             Lexer::new("a A2").lex_all().unwrap(),
             vec![
-                Token::new(
-                    Loc::new(1, 1),
-                    TokenType::Identifier("a".to_string()),
-                ),
-                Token::new(
-                    Loc::new(1, 3),
-                    TokenType::Identifier("A2".to_string()),
-                ),
+                Token::new(Loc::new(1, 1), TokenType::Identifier("a".to_string())),
+                Token::new(Loc::new(1, 3), TokenType::Identifier("A2".to_string())),
             ]
         )
     }

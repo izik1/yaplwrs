@@ -1,6 +1,6 @@
 mod lexer;
 mod parser;
-mod error;
+pub mod error;
 
 mod ast {
     #[derive(Debug, Eq, PartialEq)]
@@ -59,7 +59,7 @@ mod ast {
     }
 }
 
-mod token {
+pub mod token {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct Token {
         pub loc: super::util::Loc,
@@ -67,7 +67,7 @@ mod token {
     }
 
     impl Token {
-        pub fn require(&self, expected: &TokenType) -> ::error::RefTokenResult {
+        pub fn require(&self, expected: &TokenType) -> Result<&Token, ::error::CompilerError> {
             match (&self.token_type, expected) {
                 (&TokenType::Integer(_), &TokenType::Integer(_))
                 | (&TokenType::Const, &TokenType::Const)
@@ -112,7 +112,7 @@ mod token {
     }
 }
 
-mod util {
+pub mod util {
     use std::fmt;
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -166,18 +166,50 @@ mod util {
     }
 }
 
-fn run_parser() -> Result<(), Box<std::error::Error>> {
-    use lexer::Lexer;
-    println!(
-        "{:?}",
-        parser::Parser::parse(&Lexer::new("fn a() {if 0 {}}").lex_all()?)?
-    );
-    Ok(())
+pub fn lex(string: &str) -> Result<Vec<token::Token>, error::CompilerError> {
+    lexer::Lexer::new(string).lex_all()
 }
 
-fn main() {
-    match run_parser() {
-        Ok(_) => {}
-        Err(e) => eprintln!("{}", e),
+pub fn parse(string: &str) -> Result<ast::AstNode, error::CompilerError> {
+    parser::parse(&lex(string)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod parse {
+        use super::*;
+        use ast::*;
+        #[test]
+        fn empty() {
+            assert_eq!(parse("").unwrap(), ast::AstNode::Mod(vec![]))
+        }
+
+        #[test]
+        fn scope() {
+            assert_eq!(
+                parse("fn foo() {{}}").unwrap(),
+                AstNode::Mod(vec![
+                    AstNode::Function(
+                        FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
+                        ScopedBlock(vec![AstNode::ScopedBlock(ScopedBlock(vec![]))]),
+                    ),
+                ])
+            )
+        }
+
+        #[test]
+        fn empty_fn() {
+            assert_eq!(
+                parse("fn foo() {}").unwrap(),
+                AstNode::Mod(vec![
+                    AstNode::Function(
+                        FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
+                        ScopedBlock(vec![]),
+                    ),
+                ])
+            )
+        }
     }
 }

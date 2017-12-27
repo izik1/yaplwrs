@@ -3,4 +3,8 @@ name = "yaplwrs"
 version = "0.1.0"
 authors = ["Chloe Ross <orangesnowfox@gmail.com>"]
 
+[lib]
+name = "yaplwrs"
+path = "src/lib.rs"
+
 [dependencies]
