@@ -58,7 +58,7 @@ mod ast {
 }
 
 mod token {
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct Token {
         pub loc: super::util::Loc,
         pub token_type: TokenType,
@@ -87,7 +87,7 @@ mod token {
         }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub enum TokenType {
         Grammar(Grammar),
         Identifier(String),
@@ -97,7 +97,7 @@ mod token {
         If,
     }
 
-    #[derive(PartialEq, Clone, Copy, Debug)]
+    #[derive(PartialEq, Eq, Clone, Copy, Debug)]
     pub enum Grammar {
         OpenParen,
         CloseParen,
@@ -113,7 +113,7 @@ mod token {
 mod util {
     use std::fmt;
 
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub struct Loc {
         pub ln: usize,
         pub col: usize,
