@@ -2,6 +2,15 @@ use error::*;
 use token::*;
 use ast::*;
 
+#[cfg(test)]
+mod tests {
+    use parser::*;
+    #[test]
+    fn null_parse() {
+        assert_eq!(Parser::parse(&vec![]).unwrap(), AstNode::Mod(vec![]))
+    }
+}
+
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     pos: usize,

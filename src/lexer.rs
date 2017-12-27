@@ -7,18 +7,24 @@ use error::*;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_lex() {
+        assert_eq!(Lexer::new("").lex_all().unwrap(), vec![])
+    }
+
     #[test]
     fn identifiers() {
-        use token::*;
         assert_eq!(
-            super::Lexer::new("a A2").lex_all().unwrap(),
+            Lexer::new("a A2").lex_all().unwrap(),
             vec![
                 Token::new(
-                    ::util::Loc::new(1, 1),
+                    Loc::new(1, 1),
                     TokenType::Identifier("a".to_string()),
                 ),
                 Token::new(
-                    ::util::Loc::new(1, 3),
+                    Loc::new(1, 3),
                     TokenType::Identifier("A2".to_string()),
                 ),
             ]

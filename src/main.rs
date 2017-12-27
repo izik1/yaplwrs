@@ -3,28 +3,30 @@ mod parser;
 mod error;
 
 mod ast {
-    #[derive(Debug)]
+    #[derive(Debug, Eq, PartialEq)]
     pub struct Identifier(pub String);
-    #[derive(Debug)]
+
+    #[derive(Debug, Eq, PartialEq)]
     pub struct ScopedBlock(pub Vec<AstNode>);
-    #[derive(Debug)]
+
+    #[derive(Debug, Eq, PartialEq)]
     pub struct FunctionHeader(
         Identifier,
         Vec<(Identifier, Identifier)>,
         Option<Identifier>,
     );
 
-    #[derive(Debug)]
+    #[derive(Debug, Eq, PartialEq)]
     pub struct If(pub Box<Expr>, pub ScopedBlock, pub Option<ScopedBlock>);
 
-    #[derive(Debug)]
+    #[derive(Debug, Eq, PartialEq)]
     pub enum Primary {
         If(If),
         Integer(u64),
         Identifier(Identifier),
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Eq, PartialEq)]
     pub enum Expr {
         Binary(Box<Expr>, Box<Expr>),
         Unary(Box<Expr>),
@@ -47,7 +49,7 @@ mod ast {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Eq, PartialEq)]
     pub enum AstNode {
         Token(::token::Token),
         Mod(Vec<AstNode>),
