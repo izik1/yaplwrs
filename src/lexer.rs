@@ -24,6 +24,16 @@ mod tests {
             ]
         )
     }
+
+    #[test]
+    fn grammar_at_end_of_input() {
+        assert_eq!(
+            Lexer::new("(").lex_all().unwrap(),
+            vec![
+                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::OpenParen)),
+            ]
+        )
+    }
 }
 
 pub struct Lexer<'a> {
@@ -41,7 +51,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn lex_all(mut self) -> Result<Vec<Token>, CompilerError> {
+    pub fn lex_all(mut self) -> CompilerResult<Vec<Token>> {
         let mut tokens = Vec::new();
         while let Some(t) = self.lex()? {
             tokens.push(t);
@@ -50,7 +60,7 @@ impl<'a> Lexer<'a> {
         Ok(tokens)
     }
 
-    pub fn lex(&mut self) -> Result<Option<Token>, CompilerError> {
+    pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
         let chars = self.chars.deref_mut();
         let src = self.input;
 
@@ -135,19 +145,46 @@ impl<'a> Lexer<'a> {
                 )))
             }
 
-            ch => Ok(Some(Token::new(
-                Loc::from_string(self.input, start),
-                TokenType::Grammar(match ch {
-                    '(' => Ok(Grammar::OpenParen),
-                    ')' => Ok(Grammar::CloseParen),
-                    '{' => Ok(Grammar::OpenBrace),
-                    '}' => Ok(Grammar::CloseBrace),
-                    _ => Err(CompilerError::with_loc(
+            _ => {
+                let ops = vec![
+                    ("(", Grammar::OpenParen),
+                    (")", Grammar::CloseParen),
+                    ("{", Grammar::OpenBrace),
+                    ("}", Grammar::CloseBrace),
+                    ("->", Grammar::Arrow),
+                ];
+
+                loop {
+                    match chars.peek() {
+                        None => break,
+                        Some(_)
+                            if ops.iter()
+                                .filter(|op| op.0.contains(&src[start..pos + 1]))
+                                .count() == 0 =>
+                        {
+                            break
+                        }
+                        _ => {
+                            pos += 1;
+                            chars.next().unwrap();
+                        }
+                    }
+                }
+
+                let search = || ops.iter().filter(|op| op.0.contains(&src[start..pos]));
+
+                if search().count() == 1 {
+                    Ok(Some(Token::new(
+                        Loc::from_string(self.input, start),
+                        TokenType::Grammar(search().next().unwrap().1),
+                    )))
+                } else {
+                    Err(CompilerError::with_loc(
                         "ICE, this is a bug",
                         Loc::from_string(self.input, start),
-                    )),
-                }?),
-            ))),
+                    ))
+                }
+            }
         }?;
 
         self.pos = pos;

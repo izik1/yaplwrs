@@ -101,6 +101,7 @@ pub mod token {
 
     #[derive(PartialEq, Eq, Clone, Copy, Debug)]
     pub enum Grammar {
+        Arrow,
         OpenParen,
         CloseParen,
         OpenBrace,
@@ -206,6 +207,23 @@ mod tests {
                 AstNode::Mod(vec![
                     AstNode::Function(
                         FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
+                        ScopedBlock(vec![]),
+                    ),
+                ])
+            )
+        }
+
+        #[test]
+        fn fn_with_return() {
+            assert_eq!(
+                parse("fn foo() -> bar {}").unwrap(),
+                AstNode::Mod(vec![
+                    AstNode::Function(
+                        FunctionHeader::new(
+                            Identifier("foo".to_string()),
+                            vec![],
+                            Some(Identifier("bar".to_string())),
+                        ),
                         ScopedBlock(vec![]),
                     ),
                 ])

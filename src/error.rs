@@ -41,3 +41,5 @@ impl Error for CompilerError {
         "A compiler error has occurred"
     }
 }
+
+pub type CompilerResult<T> = Result<T, CompilerError>;
