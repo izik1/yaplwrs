@@ -70,44 +70,35 @@ impl<'a> Lexer<'a> {
         Ok(tokens)
     }
 
-    pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
+    fn nom_whitespace(&mut self) {
         let chars = self.chars.deref_mut();
-        let src = self.input;
-
-        let mut pos = self.pos;
-
-        // Skip whitespaces
         loop {
-            // Note: the following lines are in their own scope to
-            // limit how long 'chars' is borrowed, and in order to allow
-            // it to be borrowed again in the loop by 'chars.next()'.
-            {
-                let ch = chars.peek();
-
-                if ch.is_none() {
-                    self.pos = pos;
-                    return Ok(None);
-                }
-
-                if !ch.unwrap().is_whitespace() {
-                    break;
-                }
+            match chars.peek() {
+                None => return,
+                Some(ch) if !ch.is_whitespace() => break,
+                _ => {}
             }
 
             chars.next();
-            pos += 1;
+            self.pos += 1;
         }
+    }
 
-        let start = pos;
-        let next = chars.next();
+    pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
+        self.nom_whitespace();
 
-        if next.is_none() {
-            return Ok(None);
-        }
+        let chars = self.chars.deref_mut();
 
-        let next = next.unwrap();
+        let next = match chars.next() {
+            Some(ch) => ch,
+            None => return Ok(None),
+        };
 
-        pos += 1;
+        let src = self.input;
+
+        let start = self.pos;
+        let mut pos = self.pos + 1;
+
         let res: Option<Token> = match next {
             '0'...'9' => {
                 loop {
@@ -122,13 +113,13 @@ impl<'a> Lexer<'a> {
 
                 if let Ok(num) = src[start..pos].parse::<u64>() {
                     Ok(Some(Token::new(
-                        Loc::from_string(self.input, start),
+                        Loc::from_string(src, start),
                         TokenType::Integer(num),
                     )))
                 } else {
                     Err(CompilerError::with_loc(
                         "ICE, this is a bug -- Failed to parse number.",
-                        Loc::from_string(self.input, start),
+                        Loc::from_string(src, start),
                     ))
                 }
             }
@@ -145,7 +136,7 @@ impl<'a> Lexer<'a> {
                 }
 
                 Ok(Some(Token::new(
-                    Loc::from_string(self.input, start),
+                    Loc::from_string(src, start),
                     match &src[start..pos] {
                         "const" => TokenType::Const,
                         "fn" => TokenType::Function,
