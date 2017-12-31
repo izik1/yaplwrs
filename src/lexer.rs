@@ -167,10 +167,7 @@ impl<'a> Lexer<'a> {
                 ];
 
                 while let Some(_) = chars.peek() {
-                    if ops.keys()
-                        .filter(|key| key.contains(&src[start..pos + 1]))
-                        .count() != 0
-                    {
+                    if ops.keys().any(|key| key.contains(&src[start..pos + 1])) {
                         pos += 1;
                         chars.next().unwrap();
                     } else {
