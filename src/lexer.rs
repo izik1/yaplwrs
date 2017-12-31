@@ -34,6 +34,16 @@ mod tests {
             ]
         )
     }
+
+    #[test]
+    fn op_longest_match() {
+        assert_eq!(
+            Lexer::new("->").lex_all().unwrap(),
+            vec![
+                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Arrow)),
+            ]
+        )
+    }
 }
 
 pub struct Lexer<'a> {
@@ -152,22 +162,19 @@ impl<'a> Lexer<'a> {
                     ("{", Grammar::OpenBrace),
                     ("}", Grammar::CloseBrace),
                     ("->", Grammar::Arrow),
+                    (";", Grammar::SemiColon),
+                    ("-", Grammar::Minus),
                 ];
 
-                loop {
-                    match chars.peek() {
-                        None => break,
-                        Some(_)
-                            if ops.iter()
-                                .filter(|op| op.0.contains(&src[start..pos + 1]))
-                                .count() == 0 =>
-                        {
-                            break
-                        }
-                        _ => {
-                            pos += 1;
-                            chars.next().unwrap();
-                        }
+                while let Some(_) = chars.peek() {
+                    if ops.iter()
+                        .filter(|op| op.0.contains(&src[start..pos + 1]))
+                        .count() != 0
+                    {
+                        pos += 1;
+                        chars.next().unwrap();
+                    } else {
+                        break;
                     }
                 }
 
