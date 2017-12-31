@@ -71,15 +71,14 @@ impl<'a> Lexer<'a> {
     }
 
     fn nom_whitespace(&mut self) {
-        let chars = self.chars.deref_mut();
         loop {
-            match chars.peek() {
+            match self.chars.peek() {
                 None => return,
                 Some(ch) if !ch.is_whitespace() => break,
                 _ => {}
             }
 
-            chars.next();
+            self.chars.next();
             self.pos += 1;
         }
     }
@@ -111,17 +110,10 @@ impl<'a> Lexer<'a> {
                     pos += 1;
                 }
 
-                if let Ok(num) = src[start..pos].parse::<u64>() {
-                    Ok(Some(Token::new(
-                        Loc::from_string(src, start),
-                        TokenType::Integer(num),
-                    )))
-                } else {
-                    Err(CompilerError::with_loc(
-                        "ICE, this is a bug -- Failed to parse number.",
-                        Loc::from_string(src, start),
-                    ))
-                }
+                Some(Token::new(
+                    Loc::from_string(src, start),
+                    TokenType::Integer(src[start..pos].to_string()),
+                ))
             }
 
             'A'...'Z' | 'a'...'z' | '_' => {
@@ -135,7 +127,7 @@ impl<'a> Lexer<'a> {
                     pos += 1;
                 }
 
-                Ok(Some(Token::new(
+                Some(Token::new(
                     Loc::from_string(src, start),
                     match &src[start..pos] {
                         "const" => TokenType::Const,
@@ -143,7 +135,7 @@ impl<'a> Lexer<'a> {
                         "if" => TokenType::If,
                         id => TokenType::Identifier(id.to_string()),
                     },
-                )))
+                ))
             }
 
             _ => {
@@ -173,8 +165,8 @@ impl<'a> Lexer<'a> {
                 } else {
                     Err(CompilerError::with_loc("ICE, this is a bug", loc))
                 }
-            }
-        }?;
+            }?,
+        };
 
         self.pos = pos;
         Ok(res)

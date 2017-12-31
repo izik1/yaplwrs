@@ -25,7 +25,7 @@ mod ast {
     #[derive(Debug, Eq, PartialEq)]
     pub enum Primary {
         If(If),
-        Integer(u64),
+        Integer(String),
         Identifier(Identifier),
     }
 
@@ -96,7 +96,7 @@ pub mod token {
     pub enum TokenType {
         Grammar(Grammar),
         Identifier(String),
-        Integer(u64),
+        Integer(String),
         Const,
         Function,
         If,
