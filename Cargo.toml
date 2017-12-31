@@ -8,3 +8,4 @@ name = "yaplwrs"
 path = "src/lib.rs"
 
 [dependencies]
+maplit = "1.0"

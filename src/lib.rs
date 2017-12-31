@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate maplit;
+
 mod lexer;
 mod parser;
 pub mod error;
@@ -110,6 +113,7 @@ pub mod token {
         Minus,
         Star,
         Slash,
+        SemiColon,
     }
 }
 

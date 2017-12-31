@@ -108,7 +108,7 @@ impl<'a> Lexer<'a> {
         let next = next.unwrap();
 
         pos += 1;
-        let res = match next {
+        let res: Option<Token> = match next {
             '0'...'9' => {
                 loop {
                     match chars.peek() {
@@ -156,19 +156,19 @@ impl<'a> Lexer<'a> {
             }
 
             _ => {
-                let ops = vec![
-                    ("(", Grammar::OpenParen),
-                    (")", Grammar::CloseParen),
-                    ("{", Grammar::OpenBrace),
-                    ("}", Grammar::CloseBrace),
-                    ("->", Grammar::Arrow),
-                    (";", Grammar::SemiColon),
-                    ("-", Grammar::Minus),
+                let ops = hashmap![
+                    "->" => Grammar::Arrow,
+                    "(" => Grammar::OpenParen,
+                    ")" => Grammar::CloseParen,
+                    "{" => Grammar::OpenBrace,
+                    "}" => Grammar::CloseBrace,
+                    ";" => Grammar::SemiColon,
+                    "-" => Grammar::Minus,
                 ];
 
                 while let Some(_) = chars.peek() {
-                    if ops.iter()
-                        .filter(|op| op.0.contains(&src[start..pos + 1]))
+                    if ops.keys()
+                        .filter(|key| key.contains(&src[start..pos + 1]))
                         .count() != 0
                     {
                         pos += 1;
@@ -178,18 +178,12 @@ impl<'a> Lexer<'a> {
                     }
                 }
 
-                let search = || ops.iter().filter(|op| op.0.contains(&src[start..pos]));
+                let loc = Loc::from_string(self.input, start);
 
-                if search().count() == 1 {
-                    Ok(Some(Token::new(
-                        Loc::from_string(self.input, start),
-                        TokenType::Grammar(search().next().unwrap().1),
-                    )))
+                if let Some(op) = ops.get(&src[start..pos]) {
+                    Ok(Some(Token::new(loc, TokenType::Grammar(*op))))
                 } else {
-                    Err(CompilerError::with_loc(
-                        "ICE, this is a bug",
-                        Loc::from_string(self.input, start),
-                    ))
+                    Err(CompilerError::with_loc("ICE, this is a bug", loc))
                 }
             }
         }?;
