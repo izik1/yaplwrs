@@ -62,7 +62,7 @@ fn parse_primary(tokens: &mut TokenIterator) -> CompilerResult<Primary> {
     match token.token_type {
         TokenType::Identifier(id) => Ok(Primary::Identifier(Identifier(id))),
         TokenType::Integer(i) => Ok(Primary::Integer(i)),
-        TokenType::If => Ok(Primary::If(If(
+        TokenType::Keyword(Keyword::If) => Ok(Primary::If(If(
             parse_expr(tokens)?,
             parse_scoped_block(tokens)?,
             None,
@@ -151,31 +151,48 @@ fn next_identifier(tokens: &mut TokenIterator) -> CompilerResult<Identifier> {
     }
 }
 
+fn parse_fn(tokens: &mut TokenIterator) -> CompilerResult<AstNode> {
+    tokens.move_required(&TokenType::Keyword(Keyword::Function))?;
+    let name = next_identifier(tokens)?;
+    tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
+    let mut args: Vec<(Identifier, Identifier)> = Vec::new();
+
+    if let TokenType::Identifier(_) = tokens.peek()?.token_type {
+        loop {
+            let name = next_identifier(tokens)?;
+            tokens.move_required(&TokenType::Grammar(Grammar::Colon))?;
+            args.push((name, next_identifier(tokens)?));
+            if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
+                tokens.move_next()?;
+            } else {
+                break;
+            }
+        }
+    }
+
+    tokens.move_required(&TokenType::Grammar(Grammar::CloseParen))?;
+
+    let return_type = match tokens.peek()?.clone().token_type {
+        TokenType::Grammar(Grammar::Arrow) => {
+            tokens.move_next().unwrap();
+            Some(next_identifier(tokens)?)
+        }
+
+        _ => None,
+    };
+
+    Ok(AstNode::Function(
+        FunctionHeader::new(name, args, return_type),
+        parse_scoped_block(tokens)?,
+    ))
+}
+
 fn parse_mod(mut tokens: TokenIterator) -> CompilerResult<AstNode> {
     let mut vec: Vec<AstNode> = Vec::new();
     while !tokens.empty() {
         let token = tokens.peek().unwrap().clone();
-        tokens.move_next().unwrap();
         match token.token_type {
-            TokenType::Function => {
-                let name = next_identifier(&mut tokens)?;
-                tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
-                // This is where arguments will be parsed in the future.
-                tokens.move_required(&TokenType::Grammar(Grammar::CloseParen))?;
-                let return_type = match tokens.peek()?.clone().token_type {
-                    TokenType::Grammar(Grammar::Arrow) => {
-                        tokens.move_next().unwrap();
-                        Some(next_identifier(&mut tokens)?)
-                    }
-
-                    _ => None,
-                };
-
-                vec.push(AstNode::Function(
-                    FunctionHeader::new(name, Vec::new(), return_type),
-                    parse_scoped_block(&mut tokens)?,
-                ));
-            }
+            TokenType::Keyword(Keyword::Function) => vec.push(parse_fn(&mut tokens)?),
 
             _ => {
                 return Err(CompilerError::with_loc(

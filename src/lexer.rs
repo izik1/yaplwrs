@@ -130,9 +130,9 @@ impl<'a> Lexer<'a> {
                 Some(Token::new(
                     Loc::from_string(src, start),
                     match &src[start..pos] {
-                        "const" => TokenType::Const,
-                        "fn" => TokenType::Function,
-                        "if" => TokenType::If,
+                        "const" => TokenType::Keyword(Keyword::Const),
+                        "fn" => TokenType::Keyword(Keyword::Function),
+                        "if" => TokenType::Keyword(Keyword::If),
                         id => TokenType::Identifier(id.to_string()),
                     },
                 ))
@@ -147,6 +147,8 @@ impl<'a> Lexer<'a> {
                     "}" => Grammar::CloseBrace,
                     ";" => Grammar::SemiColon,
                     "-" => Grammar::Minus,
+                    ":" => Grammar::Colon,
+                    "," => Grammar::Comma,
                 ];
 
                 while let Some(_) = chars.peek() {
@@ -161,11 +163,11 @@ impl<'a> Lexer<'a> {
                 let loc = Loc::from_string(self.input, start);
 
                 if let Some(op) = ops.get(&src[start..pos]) {
-                    Ok(Some(Token::new(loc, TokenType::Grammar(*op))))
+                    Some(Token::new(loc, TokenType::Grammar(*op)))
                 } else {
-                    Err(CompilerError::with_loc("ICE, this is a bug", loc))
+                    return Err(CompilerError::with_loc("ICE, this is a bug", loc));
                 }
-            }?,
+            }
         };
 
         self.pos = pos;
