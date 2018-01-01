@@ -29,9 +29,54 @@ mod ast {
         Identifier(Identifier),
     }
 
+    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+    pub enum Associativity {
+        Right,
+        Left,
+    }
+
+    #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+    pub enum BinOperator {
+        Plus,
+        Minus,
+        Star,
+        Slash,
+    }
+
+    impl BinOperator {
+        pub fn from_token_type(ty: &::token::TokenType) -> Option<Self> {
+            use token::{Grammar, TokenType};
+            match *ty {
+                TokenType::Grammar(ref g) => match *g {
+                    Grammar::Plus => Some(BinOperator::Plus),
+                    Grammar::Slash => Some(BinOperator::Slash),
+                    Grammar::Minus => Some(BinOperator::Minus),
+                    Grammar::Star => Some(BinOperator::Star),
+                    _ => None,
+                },
+                _ => None,
+            }
+        }
+
+        pub fn precedence(&self) -> usize {
+            match *self {
+                BinOperator::Plus | BinOperator::Minus => 150,
+                BinOperator::Star | BinOperator::Slash => 200,
+            }
+        }
+
+        pub fn associativity(&self) -> Associativity {
+            match *self {
+                BinOperator::Plus | BinOperator::Minus | BinOperator::Star | BinOperator::Slash => {
+                    Associativity::Left
+                }
+            }
+        }
+    }
+
     #[derive(Debug, Eq, PartialEq)]
     pub enum Expr {
-        Binary(Box<Expr>, Box<Expr>),
+        Binary(BinOperator, Box<Expr>, Box<Expr>),
         Unary(Box<Expr>),
         Primary(Primary),
     }
@@ -209,6 +254,41 @@ mod tests {
             )
         }
 
+        #[test]
+        fn expressions() {
+            assert_eq!(
+                parse("fn foo() { if a + b * 5 {10} }").unwrap(),
+                AstNode::Mod(vec![
+                    AstNode::Function(
+                        FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
+                        ScopedBlock(vec![
+                            AstNode::Expr(Expr::Primary(Primary::If(If(
+                                Box::new(Expr::Binary(
+                                    BinOperator::Plus,
+                                    Box::new(Expr::Primary(Primary::Identifier(Identifier(
+                                        "a".to_string(),
+                                    )))),
+                                    Box::new(Expr::Binary(
+                                        BinOperator::Star,
+                                        Box::new(Expr::Primary(Primary::Identifier(Identifier(
+                                            "b".to_string(),
+                                        )))),
+                                        Box::new(Expr::Primary(Primary::Integer("5".to_string()))),
+                                    )),
+                                )),
+                                ScopedBlock(vec![
+                                    AstNode::Expr(Expr::Primary(Primary::Integer(
+                                        "10".to_string(),
+                                    ))),
+                                ]),
+                                None,
+                            )))),
+                        ]),
+                    ),
+                ])
+            )
+        }
+
         mod function {
             use super::*;
 
@@ -282,8 +362,6 @@ mod tests {
                     ])
                 )
             }
-
         }
-
     }
 }

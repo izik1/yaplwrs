@@ -146,9 +146,12 @@ impl<'a> Lexer<'a> {
                     "{" => Grammar::OpenBrace,
                     "}" => Grammar::CloseBrace,
                     ";" => Grammar::SemiColon,
-                    "-" => Grammar::Minus,
                     ":" => Grammar::Colon,
                     "," => Grammar::Comma,
+                    "+" => Grammar::Plus,
+                    "-" => Grammar::Minus,
+                    "*" => Grammar::Star,
+                    "/" => Grammar::Slash,
                 ];
 
                 while let Some(_) = chars.peek() {

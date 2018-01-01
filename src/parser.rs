@@ -81,38 +81,38 @@ fn parse_expr(tokens: &mut TokenIterator) -> CompilerResult<Box<Expr>> {
 
 fn parse_bin_expr(
     tokens: &mut TokenIterator,
-    lhs: Box<Expr>,
+    mut lhs: Box<Expr>,
     min_priority: usize,
 ) -> CompilerResult<Box<Expr>> {
-    fn is_bin_op(token: &TokenType) -> bool {
-        match *token {
-            TokenType::Grammar(ref g) => match *g {
-                Grammar::Plus | Grammar::Slash | Grammar::Minus | Grammar::Star => true,
-                _ => false,
-            },
-            _ => false,
+    fn precedence_compare(a: &BinOperator, b: &BinOperator) -> bool {
+        a.precedence() > b.precedence()
+            || (a.precedence() == b.precedence() && (a.associativity() == Associativity::Right))
+    }
+
+    let mut lookahead = tokens.peek()?.clone();
+    while let Some(op) = BinOperator::from_token_type(&lookahead.token_type) {
+        if op.precedence() < min_priority {
+            break;
         }
-    }
 
-    fn precedence(token: &TokenType) -> CompilerResult<usize> {
-        match *token {
-            TokenType::Grammar(ref g) => match *g {
-                Grammar::Plus | Grammar::Minus => Ok(150),
-                Grammar::Star | Grammar::Slash => Ok(200),
-                _ => Err(CompilerError::ice()),
-            },
+        tokens.move_next().unwrap();
 
-            _ => Err(CompilerError::ice()),
+        let mut rhs = Box::new(parse_unary_expr(tokens)?);
+        lookahead = tokens.peek()?.clone();
+
+        while let Some(lookahead_op) = BinOperator::from_token_type(&lookahead.token_type) {
+            if !precedence_compare(&lookahead_op, &op) {
+                break;
+            }
+
+            rhs = parse_bin_expr(tokens, rhs, lookahead_op.precedence())?;
+            lookahead = tokens.peek()?.clone();
         }
+
+        lhs = Box::new(Expr::Binary(op, lhs, rhs));
     }
 
-    let res = lhs;
-    let lookahead = tokens.peek()?;
-    while is_bin_op(&lookahead.token_type) && precedence(&lookahead.token_type)? > min_priority {
-        unimplemented!()
-    }
-
-    Ok(res)
+    Ok(lhs)
 }
 
 fn parse_scoped_block(tokens: &mut TokenIterator) -> CompilerResult<ScopedBlock> {
