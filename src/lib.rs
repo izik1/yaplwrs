@@ -209,54 +209,81 @@ mod tests {
             )
         }
 
-        #[test]
-        fn empty_fn() {
-            assert_eq!(
-                parse("fn foo() {}").unwrap(),
-                AstNode::Mod(vec![
-                    AstNode::Function(
-                        FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
-                        ScopedBlock(vec![]),
-                    ),
-                ])
-            )
+        mod function {
+            use super::*;
+
+            #[test]
+            fn empty_fn() {
+                assert_eq!(
+                    parse("fn foo() {}").unwrap(),
+                    AstNode::Mod(vec![
+                        AstNode::Function(
+                            FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
+                            ScopedBlock(vec![]),
+                        ),
+                    ])
+                )
+            }
+
+            #[test]
+            fn with_return() {
+                assert_eq!(
+                    parse("fn foo() -> bar {}").unwrap(),
+                    AstNode::Mod(vec![
+                        AstNode::Function(
+                            FunctionHeader::new(
+                                Identifier("foo".to_string()),
+                                vec![],
+                                Some(Identifier("bar".to_string())),
+                            ),
+                            ScopedBlock(vec![]),
+                        ),
+                    ])
+                )
+            }
+
+            #[test]
+            fn with_args() {
+                assert_eq!(
+                    parse("fn foo(q: bar, z: u32) {}").unwrap(),
+                    AstNode::Mod(vec![
+                        AstNode::Function(
+                            FunctionHeader::new(
+                                Identifier("foo".to_string()),
+                                vec![
+                                    (Identifier("q".to_string()), Identifier("bar".to_string())),
+                                    (Identifier("z".to_string()), Identifier("u32".to_string())),
+                                ],
+                                None,
+                            ),
+                            ScopedBlock(vec![]),
+                        ),
+                    ])
+                )
+            }
+
+            #[test]
+            #[should_panic]
+            fn args_without_separation() {
+                assert_ne!(
+                    parse("fn foo(q: bar z: u32) {}").unwrap(),
+                    AstNode::Mod(vec![
+                        AstNode::Function(
+                            FunctionHeader::new(
+                                Identifier("foo".to_string()),
+                                vec![
+                                    (Identifier("q".to_string()), Identifier("bar".to_string())),
+                                    (Identifier("z".to_string()), Identifier("u32".to_string())),
+                                ],
+                                None,
+                            ),
+                            ScopedBlock(vec![]),
+                        ),
+                    ])
+                )
+            }
+
         }
 
-        #[test]
-        fn fn_with_return() {
-            assert_eq!(
-                parse("fn foo() -> bar {}").unwrap(),
-                AstNode::Mod(vec![
-                    AstNode::Function(
-                        FunctionHeader::new(
-                            Identifier("foo".to_string()),
-                            vec![],
-                            Some(Identifier("bar".to_string())),
-                        ),
-                        ScopedBlock(vec![]),
-                    ),
-                ])
-            )
-        }
-
-        #[test]
-        fn fn_with_args() {
-            assert_eq!(
-                parse("fn foo(q: bar, z: u32) {}").unwrap(),
-                AstNode::Mod(vec![
-                    AstNode::Function(
-                        FunctionHeader::new(
-                            Identifier("foo".to_string()),
-                            vec![
-                                (Identifier("q".to_string()), Identifier("bar".to_string())),
-                                (Identifier("z".to_string()), Identifier("u32".to_string())),
-                            ],
-                            None,
-                        ),
-                        ScopedBlock(vec![]),
-                    ),
-                ])
-            )
-        }
     }
 }
