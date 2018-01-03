@@ -21,9 +21,18 @@ impl<'a> TokenIterator<'a> {
     }
 
     pub fn move_required(&mut self, token_type: &TokenType) -> CompilerResult<()> {
-        self.peek()?.require(token_type)?;
-        self.move_next().unwrap(); // If peek is successful, moving should be as well.
+        self.next()?.require(token_type)?;
         Ok(())
+    }
+
+    pub fn next(&mut self) -> CompilerResult<&Token> {
+        if self.pos < self.tokens.len() {
+            let tmp = Ok(&self.tokens[self.pos]);
+            self.pos += 1;
+            tmp
+        } else {
+            Err(CompilerError::new("Parser: Unexpected end of tokens"))
+        }
     }
 
     pub fn move_next(&mut self) -> CompilerResult<()> {
@@ -45,7 +54,7 @@ pub fn parse<'a>(tokens: &'a Vec<Token>) -> CompilerResult<AstNode> {
 }
 
 fn parse_unary_expr(tokens: &mut TokenIterator) -> CompilerResult<Expr> {
-    let token = tokens.peek()?.clone();
+    let token = tokens.peek()?;
     match token.token_type {
         TokenType::Grammar(Grammar::Plus) => Err(CompilerError::with_loc(
             "Parser: Unary plus is invalid",
@@ -57,11 +66,10 @@ fn parse_unary_expr(tokens: &mut TokenIterator) -> CompilerResult<Expr> {
 }
 
 fn parse_primary(tokens: &mut TokenIterator) -> CompilerResult<Primary> {
-    let token = tokens.peek()?.clone();
-    tokens.move_next().unwrap();
+    let token = tokens.next()?;
     match token.token_type {
-        TokenType::Identifier(id) => Ok(Primary::Identifier(Identifier(id))),
-        TokenType::Integer(i) => Ok(Primary::Integer(i)),
+        TokenType::Identifier(ref id) => Ok(Primary::Identifier(Identifier(id.clone()))),
+        TokenType::Integer(ref i) => Ok(Primary::Integer(i.clone())),
         TokenType::Keyword(Keyword::If) => Ok(Primary::If(If(
             parse_expr(tokens)?,
             parse_scoped_block(tokens)?,
@@ -89,7 +97,7 @@ fn parse_bin_expr(
             || (a.precedence() == b.precedence() && (a.associativity() == Associativity::Right))
     }
 
-    let mut lookahead = tokens.peek()?.clone();
+    let mut lookahead = tokens.peek()?;
     while let Some(op) = BinOperator::from_token_type(&lookahead.token_type) {
         if op.precedence() < min_priority {
             break;
@@ -98,7 +106,7 @@ fn parse_bin_expr(
         tokens.move_next().unwrap();
 
         let mut rhs = Box::new(parse_unary_expr(tokens)?);
-        lookahead = tokens.peek()?.clone();
+        lookahead = tokens.peek()?;
 
         while let Some(lookahead_op) = BinOperator::from_token_type(&lookahead.token_type) {
             if !precedence_compare(&lookahead_op, &op) {
@@ -106,7 +114,7 @@ fn parse_bin_expr(
             }
 
             rhs = parse_bin_expr(tokens, rhs, lookahead_op.precedence())?;
-            lookahead = tokens.peek()?.clone();
+            lookahead = tokens.peek()?;
         }
 
         lhs = Box::new(Expr::Binary(op, lhs, rhs));
@@ -138,15 +146,12 @@ fn parse_scoped_block(tokens: &mut TokenIterator) -> CompilerResult<ScopedBlock>
 }
 
 fn next_identifier(tokens: &mut TokenIterator) -> CompilerResult<Identifier> {
-    let Token { token_type, loc } = tokens.peek()?.clone();
-    match token_type {
-        TokenType::Identifier(s) => {
-            tokens.move_next().unwrap();
-            Ok(Identifier(s))
-        }
+    let tok = tokens.next()?;
+    match tok.token_type {
+        TokenType::Identifier(ref s) => Ok(Identifier(s.clone())),
         _ => Err(CompilerError::with_loc(
             "Parser: Expected Identifier but got something else",
-            loc,
+            tok.loc,
         )),
     }
 }
@@ -163,7 +168,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> CompilerResult<AstNode> {
             tokens.move_required(&TokenType::Grammar(Grammar::Colon))?;
             args.push((name, next_identifier(tokens)?));
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
-                tokens.move_next()?;
+                tokens.move_next().unwrap();
             } else {
                 break;
             }
@@ -172,7 +177,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> CompilerResult<AstNode> {
 
     tokens.move_required(&TokenType::Grammar(Grammar::CloseParen))?;
 
-    let return_type = match tokens.peek()?.clone().token_type {
+    let return_type = match tokens.peek()?.token_type {
         TokenType::Grammar(Grammar::Arrow) => {
             tokens.move_next().unwrap();
             Some(next_identifier(tokens)?)
@@ -190,10 +195,9 @@ fn parse_fn(tokens: &mut TokenIterator) -> CompilerResult<AstNode> {
 fn parse_mod(mut tokens: TokenIterator) -> CompilerResult<AstNode> {
     let mut vec: Vec<AstNode> = Vec::new();
     while !tokens.empty() {
-        let token = tokens.peek().unwrap().clone();
+        let token = tokens.peek().unwrap();
         match token.token_type {
             TokenType::Keyword(Keyword::Function) => vec.push(parse_fn(&mut tokens)?),
-
             _ => {
                 return Err(CompilerError::with_loc(
                     "Parser: unexpected token for module",

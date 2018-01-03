@@ -71,15 +71,13 @@ impl<'a> Lexer<'a> {
     }
 
     fn nom_whitespace(&mut self) {
-        loop {
-            match self.chars.peek() {
-                None => return,
-                Some(ch) if !ch.is_whitespace() => break,
-                _ => {}
+        while let Some(ch) = self.chars.peek() {
+            if ch.is_whitespace() {
+                self.chars.next();
+                self.pos += 1;
+            } else {
+                break;
             }
-
-            self.chars.next();
-            self.pos += 1;
         }
     }
 
@@ -100,14 +98,13 @@ impl<'a> Lexer<'a> {
 
         let res: Option<Token> = match next {
             '0'...'9' => {
-                loop {
-                    match chars.peek() {
-                        Some(ch) if ch.is_numeric() => {}
-                        _ => break,
+                while let Some(ch) = chars.peek() {
+                    if ch.is_numeric() {
+                        chars.next();
+                        pos += 1;
+                    } else {
+                        break;
                     }
-
-                    chars.next();
-                    pos += 1;
                 }
 
                 Some(Token::new(
@@ -117,14 +114,13 @@ impl<'a> Lexer<'a> {
             }
 
             'A'...'Z' | 'a'...'z' | '_' => {
-                loop {
-                    match chars.peek() {
-                        Some(ch) if ch == &'_' || ch.is_alphanumeric() => {}
-                        _ => break,
-                    };
-
-                    chars.next();
-                    pos += 1;
+                while let Some(ch) = chars.peek() {
+                    if ch == &'_' || ch.is_alphanumeric() {
+                        chars.next();
+                        pos += 1;
+                    } else {
+                        break;
+                    }
                 }
 
                 Some(Token::new(
@@ -157,7 +153,7 @@ impl<'a> Lexer<'a> {
                 while let Some(_) = chars.peek() {
                     if ops.keys().any(|key| key.contains(&src[start..pos + 1])) {
                         pos += 1;
-                        chars.next().unwrap();
+                        chars.next();
                     } else {
                         break;
                     }
