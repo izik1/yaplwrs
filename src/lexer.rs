@@ -1,6 +1,5 @@
 use std::iter::Peekable;
 use std::str::Chars;
-use std::ops::DerefMut;
 use token::*;
 use util::Loc;
 use error::*;
@@ -48,11 +47,24 @@ mod tests {
     #[test]
     fn suffixed_numbers() {
         assert_eq!(
-            Lexer::new("123_u8").lex_all().unwrap(),
+            Lexer::new("123u8").lex_all().unwrap(),
             vec![
                 Token::new(
                     Loc::new(1, 1),
                     TokenType::Integer("123".to_string(), "u8".to_string()),
+                ),
+            ]
+        )
+    }
+
+    #[test]
+    fn underscores_in_numbers() {
+        assert_eq!(
+            Lexer::new("123_45_6__u32").lex_all().unwrap(),
+            vec![
+                Token::new(
+                    Loc::new(1, 1),
+                    TokenType::Integer("123456".to_string(), "u32".to_string()),
                 ),
             ]
         )
@@ -96,10 +108,15 @@ impl<'a> Lexer<'a> {
 
     fn lex_number(&mut self) -> Option<Token> {
         let start = self.pos;
-        self.pos += 1;
+
+        let mut num = String::new();
 
         while let Some(ch) = self.chars.peek() {
             if ch.is_numeric() {
+                num.push(*ch);
+                self.chars.next();
+                self.pos += 1;
+            } else if ch == &'_' {
                 self.chars.next();
                 self.pos += 1;
             } else {
@@ -110,34 +127,27 @@ impl<'a> Lexer<'a> {
         let num_pos = self.pos;
 
         let mut suffix = "i32".to_string();
-        if let Some(ch) = self.chars.peek() {
-            if ch == &'_' {
-                self.pos += 1;
+        while let Some(ch) = self.chars.peek() {
+            if ch == &'_' || ch.is_alphanumeric() {
                 self.chars.next();
-                while let Some(ch) = self.chars.peek() {
-                    if ch == &'_' || ch.is_alphanumeric() {
-                        self.chars.next();
-                        self.pos += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                if self.pos > num_pos + 1 {
-                    suffix = self.input[(num_pos + 1)..self.pos].to_string();
-                }
+                self.pos += 1;
+            } else {
+                break;
             }
+        }
+
+        if self.pos > num_pos {
+            suffix = self.input[num_pos..self.pos].to_string();
         }
 
         Some(Token::new(
             Loc::from_string(self.input, start),
-            TokenType::Integer(self.input[start..num_pos].to_string(), suffix),
+            TokenType::Integer(num, suffix),
         ))
     }
 
     fn lex_identifier(&mut self) -> Option<Token> {
         let start = self.pos;
-        self.pos += 1;
 
         while let Some(ch) = self.chars.peek() {
             if ch == &'_' || ch.is_alphanumeric() {
@@ -161,7 +171,7 @@ impl<'a> Lexer<'a> {
 
     fn lex_operator(&mut self) -> CompilerResult<Option<Token>> {
         let start = self.pos;
-        let mut pos = self.pos + 1;
+        let mut pos = self.pos;
 
         let ops = hashmap![
                     "->" => Grammar::Arrow,
@@ -202,12 +212,12 @@ impl<'a> Lexer<'a> {
     pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
         self.nom_whitespace();
 
-        let next = match self.chars.next() {
+        let lookahead = match self.chars.peek() {
             Some(ch) => ch,
             None => return Ok(None),
         };
 
-        let res: Option<Token> = match next {
+        let res: Option<Token> = match *lookahead {
             '0'...'9' => self.lex_number(),
             'A'...'Z' | 'a'...'z' | '_' => self.lex_identifier(),
             _ => self.lex_operator()?,
