@@ -62,12 +62,16 @@ mod tests {
                                         Box::new(Expr::Primary(Primary::Identifier(Identifier(
                                             "b".to_string(),
                                         )))),
-                                        Box::new(Expr::Primary(Primary::Integer("5".to_string()))),
+                                        Box::new(Expr::Primary(Primary::Integer(
+                                            "5".to_string(),
+                                            "i32".to_string(),
+                                        ))),
                                     )),
                                 )),
                                 ScopedBlock(vec![
                                     AstNode::Expr(Expr::Primary(Primary::Integer(
                                         "10".to_string(),
+                                        "i32".to_string(),
                                     ))),
                                 ]),
                                 None,

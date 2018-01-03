@@ -69,7 +69,7 @@ fn parse_primary(tokens: &mut TokenIterator) -> CompilerResult<Primary> {
     let token = tokens.next()?;
     match token.token_type {
         TokenType::Identifier(ref id) => Ok(Primary::Identifier(Identifier(id.clone()))),
-        TokenType::Integer(ref i) => Ok(Primary::Integer(i.clone())),
+        TokenType::Integer(ref i, ref suffix) => Ok(Primary::Integer(i.clone(), suffix.clone())),
         TokenType::Keyword(Keyword::If) => Ok(Primary::If(If(
             parse_expr(tokens)?,
             parse_scoped_block(tokens)?,

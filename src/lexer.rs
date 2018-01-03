@@ -44,6 +44,19 @@ mod tests {
             ]
         )
     }
+
+    #[test]
+    fn suffixed_numbers() {
+        assert_eq!(
+            Lexer::new("123_u8").lex_all().unwrap(),
+            vec![
+                Token::new(
+                    Loc::new(1, 1),
+                    TokenType::Integer("123".to_string(), "u8".to_string()),
+                ),
+            ]
+        )
+    }
 }
 
 pub struct Lexer<'a> {
@@ -107,9 +120,31 @@ impl<'a> Lexer<'a> {
                     }
                 }
 
+                let num_pos = pos;
+
+                let mut suffix = "i32".to_string();
+                if let Some(ch) = chars.peek() {
+                    if ch == &'_' {
+                        pos += 1;
+                        chars.next();
+                        while let Some(ch) = chars.peek() {
+                            if ch == &'_' || ch.is_alphanumeric() {
+                                chars.next();
+                                pos += 1;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        if pos > (num_pos + 1) {
+                            suffix = src[(num_pos + 1)..pos].to_string();
+                        }
+                    }
+                }
+
                 Some(Token::new(
                     Loc::from_string(src, start),
-                    TokenType::Integer(src[start..pos].to_string()),
+                    TokenType::Integer(src[start..num_pos].to_string(), suffix),
                 ))
             }
 

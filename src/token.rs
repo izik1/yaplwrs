@@ -7,7 +7,7 @@ pub struct Token {
 impl Token {
     pub fn require(&self, expected: &TokenType) -> Result<&Token, ::error::CompilerError> {
         match (&self.token_type, expected) {
-            (&TokenType::Integer(_), &TokenType::Integer(_))
+            (&TokenType::Integer(_, _), &TokenType::Integer(_, _))
             | (&TokenType::Identifier(_), &TokenType::Identifier(_)) => Ok(self),
             _ => if &self.token_type == expected {
                 Ok(self)
@@ -29,7 +29,7 @@ impl Token {
 pub enum TokenType {
     Grammar(Grammar),
     Identifier(String),
-    Integer(String),
+    Integer(String, String),
     Keyword(Keyword),
 }
 

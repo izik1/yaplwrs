@@ -17,7 +17,7 @@ pub struct If(pub Box<Expr>, pub ScopedBlock, pub Option<ScopedBlock>);
 #[derive(Debug, Eq, PartialEq)]
 pub enum Primary {
     If(If),
-    Integer(String),
+    Integer(String, String),
     Identifier(Identifier),
 }
 
