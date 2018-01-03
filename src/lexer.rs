@@ -94,83 +94,76 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
-        self.nom_whitespace();
+    fn lex_number(&mut self) -> Option<Token> {
+        let start = self.pos;
+        self.pos += 1;
 
-        let chars = self.chars.deref_mut();
+        while let Some(ch) = self.chars.peek() {
+            if ch.is_numeric() {
+                self.chars.next();
+                self.pos += 1;
+            } else {
+                break;
+            }
+        }
 
-        let next = match chars.next() {
-            Some(ch) => ch,
-            None => return Ok(None),
-        };
+        let num_pos = self.pos;
 
-        let src = self.input;
+        let mut suffix = "i32".to_string();
+        if let Some(ch) = self.chars.peek() {
+            if ch == &'_' {
+                self.pos += 1;
+                self.chars.next();
+                while let Some(ch) = self.chars.peek() {
+                    if ch == &'_' || ch.is_alphanumeric() {
+                        self.chars.next();
+                        self.pos += 1;
+                    } else {
+                        break;
+                    }
+                }
 
+                if self.pos > num_pos + 1 {
+                    suffix = self.input[(num_pos + 1)..self.pos].to_string();
+                }
+            }
+        }
+
+        Some(Token::new(
+            Loc::from_string(self.input, start),
+            TokenType::Integer(self.input[start..num_pos].to_string(), suffix),
+        ))
+    }
+
+    fn lex_identifier(&mut self) -> Option<Token> {
+        let start = self.pos;
+        self.pos += 1;
+
+        while let Some(ch) = self.chars.peek() {
+            if ch == &'_' || ch.is_alphanumeric() {
+                self.chars.next();
+                self.pos += 1;
+            } else {
+                break;
+            }
+        }
+
+        Some(Token::new(
+            Loc::from_string(self.input, start),
+            match &self.input[start..self.pos] {
+                "const" => TokenType::Keyword(Keyword::Const),
+                "fn" => TokenType::Keyword(Keyword::Function),
+                "if" => TokenType::Keyword(Keyword::If),
+                id => TokenType::Identifier(id.to_string()),
+            },
+        ))
+    }
+
+    fn lex_operator(&mut self) -> CompilerResult<Option<Token>> {
         let start = self.pos;
         let mut pos = self.pos + 1;
 
-        let res: Option<Token> = match next {
-            '0'...'9' => {
-                while let Some(ch) = chars.peek() {
-                    if ch.is_numeric() {
-                        chars.next();
-                        pos += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                let num_pos = pos;
-
-                let mut suffix = "i32".to_string();
-                if let Some(ch) = chars.peek() {
-                    if ch == &'_' {
-                        pos += 1;
-                        chars.next();
-                        while let Some(ch) = chars.peek() {
-                            if ch == &'_' || ch.is_alphanumeric() {
-                                chars.next();
-                                pos += 1;
-                            } else {
-                                break;
-                            }
-                        }
-
-                        if pos > (num_pos + 1) {
-                            suffix = src[(num_pos + 1)..pos].to_string();
-                        }
-                    }
-                }
-
-                Some(Token::new(
-                    Loc::from_string(src, start),
-                    TokenType::Integer(src[start..num_pos].to_string(), suffix),
-                ))
-            }
-
-            'A'...'Z' | 'a'...'z' | '_' => {
-                while let Some(ch) = chars.peek() {
-                    if ch == &'_' || ch.is_alphanumeric() {
-                        chars.next();
-                        pos += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                Some(Token::new(
-                    Loc::from_string(src, start),
-                    match &src[start..pos] {
-                        "const" => TokenType::Keyword(Keyword::Const),
-                        "fn" => TokenType::Keyword(Keyword::Function),
-                        "if" => TokenType::Keyword(Keyword::If),
-                        id => TokenType::Identifier(id.to_string()),
-                    },
-                ))
-            }
-
-            _ => {
-                let ops = hashmap![
+        let ops = hashmap![
                     "->" => Grammar::Arrow,
                     "(" => Grammar::OpenParen,
                     ")" => Grammar::CloseParen,
@@ -185,26 +178,41 @@ impl<'a> Lexer<'a> {
                     "/" => Grammar::Slash,
                 ];
 
-                while let Some(_) = chars.peek() {
-                    if ops.keys().any(|key| key.contains(&src[start..pos + 1])) {
-                        pos += 1;
-                        chars.next();
-                    } else {
-                        break;
-                    }
-                }
-
-                let loc = Loc::from_string(self.input, start);
-
-                if let Some(op) = ops.get(&src[start..pos]) {
-                    Some(Token::new(loc, TokenType::Grammar(*op)))
-                } else {
-                    return Err(CompilerError::with_loc("ICE, this is a bug", loc));
-                }
+        while let Some(_) = self.chars.peek() {
+            if ops.keys()
+                .any(|key| key.contains(&self.input[start..pos + 1]))
+            {
+                pos += 1;
+                self.chars.next();
+            } else {
+                break;
             }
+        }
+
+        let loc = Loc::from_string(self.input, start);
+
+        if let Some(op) = ops.get(&self.input[start..pos]) {
+            self.pos = pos;
+            Ok(Some(Token::new(loc, TokenType::Grammar(*op))))
+        } else {
+            Err(CompilerError::with_loc("ICE, this is a bug", loc))
+        }
+    }
+
+    pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
+        self.nom_whitespace();
+
+        let next = match self.chars.next() {
+            Some(ch) => ch,
+            None => return Ok(None),
         };
 
-        self.pos = pos;
+        let res: Option<Token> = match next {
+            '0'...'9' => self.lex_number(),
+            'A'...'Z' | 'a'...'z' | '_' => self.lex_identifier(),
+            _ => self.lex_operator()?,
+        };
+
         Ok(res)
     }
 }
