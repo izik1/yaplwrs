@@ -61,29 +61,6 @@ mod tests {
         }
 
         #[test]
-        fn bin_expressions() {
-            run_test_inside_fn(
-                "if a + b * 5 {10}",
-                ScopedBlock(vec![
-                    AstNode::Expr(Expr::Primary(Primary::If(If(
-                        Box::new(Expr::Binary(
-                            BinOperator::Plus,
-                            Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
-                            Box::new(Expr::Binary(
-                                BinOperator::Star,
-                                Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
-                                Box::new(prim_i32(5)),
-                            )),
-                        )),
-                        ScopedBlock(vec![AstNode::Expr(prim_i32(10))]),
-                        vec![],
-                        None,
-                    )))),
-                ]),
-            )
-        }
-
-        #[test]
         fn if_elseif_else() {
             assert_eq!(
                 parse("fn foo() { q + if a {1} else if b {2} else if c {3} else {4} }").unwrap(),
@@ -111,24 +88,55 @@ mod tests {
             )
         }
 
-        #[test]
-        fn expressions_unary_minus() {
-            run_test_inside_fn(
-                "-a --b",
-                ScopedBlock(vec![
-                    AstNode::Expr(Expr::Binary(
-                        BinOperator::Minus,
-                        Box::new(Expr::Unary(
-                            UnaryOperator::Minus,
-                            Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
+        mod expression {
+            use super::*;
+
+            #[test]
+            fn binary() {
+                run_test_inside_fn(
+                    "10 + 4 * 5 / 2 - 1",
+                    ScopedBlock(vec![
+                        AstNode::Expr(Expr::Binary(
+                            BinOperator::Minus,
+                            Box::new(Expr::Binary(
+                                BinOperator::Plus,
+                                Box::new(prim_i32(10)),
+                                Box::new(Expr::Binary(
+                                    BinOperator::Slash,
+                                    Box::new(Expr::Binary(
+                                        BinOperator::Star,
+                                        Box::new(prim_i32(4)),
+                                        Box::new(prim_i32(5)),
+                                    )),
+                                    Box::new(prim_i32(2)),
+                                )),
+                            )),
+                            Box::new(prim_i32(1)),
                         )),
-                        Box::new(Expr::Unary(
-                            UnaryOperator::Minus,
-                            Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
+                    ]),
+                )
+            }
+
+            #[test]
+            fn unary_minus() {
+                run_test_inside_fn(
+                    "-a --b",
+                    ScopedBlock(vec![
+                        AstNode::Expr(Expr::Binary(
+                            BinOperator::Minus,
+                            Box::new(Expr::Unary(
+                                UnaryOperator::Minus,
+                                Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
+                            )),
+                            Box::new(Expr::Unary(
+                                UnaryOperator::Minus,
+                                Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
+                            )),
                         )),
-                    )),
-                ]),
-            )
+                    ]),
+                )
+            }
+
         }
 
         mod function {
