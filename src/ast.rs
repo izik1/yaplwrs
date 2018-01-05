@@ -43,6 +43,21 @@ pub enum BinOperator {
     Slash,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum UnaryOperator {
+    Minus,
+}
+
+impl UnaryOperator {
+    pub fn from_token_type(ty: &::token::TokenType) -> Option<Self> {
+        use token::{Grammar, TokenType};
+        match *ty {
+            TokenType::Grammar(Grammar::Minus) => Some(UnaryOperator::Minus),
+            _ => None,
+        }
+    }
+}
+
 impl BinOperator {
     pub fn from_token_type(ty: &::token::TokenType) -> Option<Self> {
         use token::{Grammar, TokenType};
@@ -77,7 +92,7 @@ impl BinOperator {
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
     Binary(BinOperator, Box<Expr>, Box<Expr>),
-    Unary(Box<Expr>),
+    Unary(UnaryOperator, Box<Expr>),
     Primary(Primary),
 }
 

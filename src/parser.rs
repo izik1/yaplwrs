@@ -55,6 +55,12 @@ pub fn parse<'a>(tokens: &'a Vec<Token>) -> CompilerResult<AstNode> {
 
 fn parse_unary_expr(tokens: &mut TokenIterator) -> CompilerResult<Expr> {
     let token = tokens.peek()?;
+
+    if let Some(op) = UnaryOperator::from_token_type(&token.token_type) {
+        tokens.move_next()?;
+        return Ok(Expr::Unary(op, Box::new(parse_unary_expr(tokens)?)));
+    }
+
     match token.token_type {
         TokenType::Grammar(Grammar::Plus) => Err(CompilerError::with_loc(
             "Parser: Unary plus is invalid",

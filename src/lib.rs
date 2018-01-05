@@ -35,10 +35,7 @@ mod tests {
 
         fn foo_no_args(body: ScopedBlock) -> AstNode {
             AstNode::Mod(vec![
-                AstNode::Function(
-                    FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
-                    body,
-                ),
+                AstNode::Function(FunctionHeader::new(identifier("foo"), vec![], None), body),
             ])
         }
 
@@ -64,7 +61,7 @@ mod tests {
         }
 
         #[test]
-        fn expressions() {
+        fn bin_expressions() {
             run_test_inside_fn(
                 "if a + b * 5 {10}",
                 ScopedBlock(vec![
@@ -111,6 +108,26 @@ mod tests {
                         )))),
                     )),
                 ]))
+            )
+        }
+
+        #[test]
+        fn expressions_unary_minus() {
+            run_test_inside_fn(
+                "-a --b",
+                ScopedBlock(vec![
+                    AstNode::Expr(Expr::Binary(
+                        BinOperator::Minus,
+                        Box::new(Expr::Unary(
+                            UnaryOperator::Minus,
+                            Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
+                        )),
+                        Box::new(Expr::Unary(
+                            UnaryOperator::Minus,
+                            Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
+                        )),
+                    )),
+                ]),
             )
         }
 
