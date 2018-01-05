@@ -191,10 +191,10 @@ impl<'a> Lexer<'a> {
         while let Some(_) = self.chars.peek() {
             if ops.keys()
                 .any(|key| key.contains(&self.input[start..pos + 1]))
-            {
-                pos += 1;
-                self.chars.next();
-            } else {
+                {
+                    pos += 1;
+                    self.chars.next();
+                } else {
                 break;
             }
         }
@@ -211,18 +211,14 @@ impl<'a> Lexer<'a> {
 
     pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
         self.nom_whitespace();
-
-        let lookahead = match self.chars.peek() {
-            Some(ch) => ch,
-            None => return Ok(None),
-        };
-
-        let res: Option<Token> = match *lookahead {
-            '0'...'9' => self.lex_number(),
-            'A'...'Z' | 'a'...'z' | '_' => self.lex_identifier(),
-            _ => self.lex_operator()?,
-        };
-
-        Ok(res)
+        if let Some(lookahead) = self.chars.peek() {
+            Ok(match *lookahead {
+                '0' ... '9' => self.lex_number(),
+                'A' ... 'Z' | 'a' ... 'z' | '_' => self.lex_identifier(),
+                _ => self.lex_operator()?,
+            })
+        } else {
+            Ok(None)
+        }
     }
 }
