@@ -25,6 +25,31 @@ mod tests {
     mod parse {
         use super::*;
         use ast::*;
+
+        fn run_test_inside_fn(code: &str, block: ScopedBlock) {
+            assert_eq!(
+                parse(&format!("fn foo() {{ {} }}", code)).unwrap(),
+                foo_no_args(block)
+            )
+        }
+
+        fn foo_no_args(body: ScopedBlock) -> AstNode {
+            AstNode::Mod(vec![
+                AstNode::Function(
+                    FunctionHeader::new(Identifier("foo".to_string()), vec![], None),
+                    body,
+                ),
+            ])
+        }
+
+        fn prim_i32(val: i32) -> Expr {
+            Expr::Primary(Primary::Integer(val.to_string(), "i32".to_string()))
+        }
+
+        fn identifier(id: &str) -> Identifier {
+            Identifier(id.to_string())
+        }
+
         #[test]
         fn empty() {
             assert_eq!(parse("").unwrap(), ast::AstNode::Mod(vec![]))
@@ -32,98 +57,57 @@ mod tests {
 
         #[test]
         fn scope() {
-            assert_eq!(
-                parse("fn foo() {{}}").unwrap(),
-                foo_no_args(ScopedBlock(vec![AstNode::ScopedBlock(ScopedBlock(vec![]))]))
+            run_test_inside_fn(
+                "{}",
+                ScopedBlock(vec![AstNode::ScopedBlock(ScopedBlock(vec![]))]),
             )
         }
 
         #[test]
         fn expressions() {
-            assert_eq!(
-                parse("fn foo() { if a + b * 5 {10} }").unwrap(),
-                foo_no_args(ScopedBlock(vec![
+            run_test_inside_fn(
+                "if a + b * 5 {10}",
+                ScopedBlock(vec![
                     AstNode::Expr(Expr::Primary(Primary::If(If(
                         Box::new(Expr::Binary(
                             BinOperator::Plus,
-                            Box::new(Expr::Primary(Primary::Identifier(Identifier(
-                                "a".to_string(),
-                            )))),
+                            Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
                             Box::new(Expr::Binary(
                                 BinOperator::Star,
-                                Box::new(Expr::Primary(Primary::Identifier(Identifier(
-                                    "b".to_string(),
-                                )))),
-                                Box::new(Expr::Primary(Primary::Integer(
-                                    "5".to_string(),
-                                    "i32".to_string(),
-                                ))),
+                                Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
+                                Box::new(prim_i32(5)),
                             )),
                         )),
-                        ScopedBlock(vec![
-                            AstNode::Expr(Expr::Primary(Primary::Integer(
-                                "10".to_string(),
-                                "i32".to_string(),
-                            ))),
-                        ]),
+                        ScopedBlock(vec![AstNode::Expr(prim_i32(10))]),
                         vec![],
                         None,
                     )))),
-                ]))
+                ]),
             )
         }
 
         #[test]
         fn if_elseif_else() {
             assert_eq!(
-                parse("fn foo() { q + if a {10} else if b {20} else if c {30} else {40} }")
-                    .unwrap(),
+                parse("fn foo() { q + if a {1} else if b {2} else if c {3} else {4} }").unwrap(),
                 foo_no_args(ScopedBlock(vec![
                     AstNode::Expr(Expr::Binary(
                         BinOperator::Plus,
-                        Box::new(Expr::Primary(Primary::Identifier(Identifier(
-                            "q".to_string(),
-                        )))),
+                        Box::new(Expr::Primary(Primary::Identifier(identifier("q")))),
                         Box::new(Expr::Primary(Primary::If(If(
-                            Box::new(Expr::Primary(Primary::Identifier(Identifier(
-                                "a".to_string(),
-                            )))),
-                            ScopedBlock(vec![
-                                AstNode::Expr(Expr::Primary(Primary::Integer(
-                                    "10".to_string(),
-                                    "i32".to_string(),
-                                ))),
-                            ]),
+                            Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
+                            ScopedBlock(vec![AstNode::Expr(prim_i32(1))]),
                             vec![
                                 ElseIf(
-                                    Box::new(Expr::Primary(Primary::Identifier(Identifier(
-                                        "b".to_string(),
-                                    )))),
-                                    ScopedBlock(vec![
-                                        AstNode::Expr(Expr::Primary(Primary::Integer(
-                                            "20".to_string(),
-                                            "i32".to_string(),
-                                        ))),
-                                    ]),
+                                    Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
+                                    ScopedBlock(vec![AstNode::Expr(prim_i32(2))]),
                                 ),
                                 ElseIf(
-                                    Box::new(Expr::Primary(Primary::Identifier(Identifier(
-                                        "c".to_string(),
-                                    )))),
-                                    ScopedBlock(vec![
-                                        AstNode::Expr(Expr::Primary(Primary::Integer(
-                                            "30".to_string(),
-                                            "i32".to_string(),
-                                        ))),
-                                    ]),
+                                    Box::new(Expr::Primary(Primary::Identifier(identifier("c")))),
+                                    ScopedBlock(vec![AstNode::Expr(prim_i32(3))]),
                                 ),
                             ],
-                            Some(ScopedBlock(vec![
-                                AstNode::Expr(Expr::Primary(Primary::Integer(
-                                    "40".to_string(),
-                                    "i32".to_string(),
-                                ))),
-                            ])),
+                            Some(ScopedBlock(vec![AstNode::Expr(prim_i32(4))])),
                         )))),
                     )),
                 ]))
@@ -135,10 +119,7 @@ mod tests {
 
             #[test]
             fn empty_fn() {
-                assert_eq!(
-                    parse("fn foo() {}").unwrap(),
-                    foo_no_args(ScopedBlock(vec![]))
-                )
+                run_test_inside_fn("", ScopedBlock(vec![]))
             }
 
             #[test]
@@ -147,11 +128,7 @@ mod tests {
                     parse("fn foo() -> bar {}").unwrap(),
                     AstNode::Mod(vec![
                         AstNode::Function(
-                            FunctionHeader::new(
-                                Identifier("foo".to_string()),
-                                vec![],
-                                Some(Identifier("bar".to_string())),
-                            ),
+                            FunctionHeader::new(identifier("foo"), vec![], Some(identifier("bar"))),
                             ScopedBlock(vec![]),
                         ),
                     ])
@@ -165,10 +142,10 @@ mod tests {
                     AstNode::Mod(vec![
                         AstNode::Function(
                             FunctionHeader::new(
-                                Identifier("foo".to_string()),
+                                identifier("foo"),
                                 vec![
-                                    (Identifier("q".to_string()), Identifier("bar".to_string())),
-                                    (Identifier("z".to_string()), Identifier("u32".to_string())),
+                                    (identifier("q"), identifier("bar")),
+                                    (identifier("z"), identifier("u32")),
                                 ],
                                 None,
                             ),
@@ -186,10 +163,10 @@ mod tests {
                     AstNode::Mod(vec![
                         AstNode::Function(
                             FunctionHeader::new(
-                                Identifier("foo".to_string()),
+                                identifier("foo"),
                                 vec![
-                                    (Identifier("q".to_string()), Identifier("bar".to_string())),
-                                    (Identifier("z".to_string()), Identifier("u32".to_string())),
+                                    (identifier("q"), identifier("bar")),
+                                    (identifier("z"), identifier("u32")),
                                 ],
                                 None,
                             ),
