@@ -112,11 +112,11 @@ impl<'a> Lexer<'a> {
         let mut num = String::new();
 
         while let Some(ch) = self.chars.peek() {
-            if ch.is_numeric() {
-                num.push(*ch);
-                self.chars.next();
-                self.pos += 1;
-            } else if ch == &'_' {
+            if ch.is_numeric() || ch == &'_' {
+                if ch.is_numeric() {
+                    num.push(*ch);
+                }
+
                 self.chars.next();
                 self.pos += 1;
             } else {
@@ -191,10 +191,10 @@ impl<'a> Lexer<'a> {
         while let Some(_) = self.chars.peek() {
             if ops.keys()
                 .any(|key| key.contains(&self.input[start..pos + 1]))
-                {
-                    pos += 1;
-                    self.chars.next();
-                } else {
+            {
+                pos += 1;
+                self.chars.next();
+            } else {
                 break;
             }
         }
@@ -213,8 +213,8 @@ impl<'a> Lexer<'a> {
         self.nom_whitespace();
         if let Some(lookahead) = self.chars.peek() {
             Ok(match *lookahead {
-                '0' ... '9' => self.lex_number(),
-                'A' ... 'Z' | 'a' ... 'z' | '_' => self.lex_identifier(),
+                '0'...'9' => self.lex_number(),
+                'A'...'Z' | 'a'...'z' | '_' => self.lex_identifier(),
                 _ => self.lex_operator()?,
             })
         } else {
