@@ -38,6 +38,7 @@ pub enum Keyword {
     Const,
     Function,
     If,
+    Else,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]

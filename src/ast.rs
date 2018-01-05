@@ -12,7 +12,15 @@ pub struct FunctionHeader(
 );
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct If(pub Box<Expr>, pub ScopedBlock, pub Option<ScopedBlock>);
+pub struct If(
+    pub Box<Expr>,
+    pub ScopedBlock,
+    pub Vec<ElseIf>,
+    pub Option<ScopedBlock>,
+);
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct ElseIf(pub Box<Expr>, pub ScopedBlock);
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Primary {

@@ -164,6 +164,7 @@ impl<'a> Lexer<'a> {
                 "const" => TokenType::Keyword(Keyword::Const),
                 "fn" => TokenType::Keyword(Keyword::Function),
                 "if" => TokenType::Keyword(Keyword::If),
+                "else" => TokenType::Keyword(Keyword::Else),
                 id => TokenType::Identifier(id.to_string()),
             },
         ))

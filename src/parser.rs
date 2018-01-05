@@ -65,16 +65,36 @@ fn parse_unary_expr(tokens: &mut TokenIterator) -> CompilerResult<Expr> {
     }
 }
 
+// NOTE: this assumes that the caller already ate the "if" token, and doesn't check for it.
+fn parse_if(tokens: &mut TokenIterator) -> CompilerResult<If> {
+    let cond = parse_expr(tokens)?;
+    let block = parse_scoped_block(tokens)?;
+    let mut elseifs = vec![];
+    let mut block_else = None;
+    loop {
+        if tokens.peek()?.token_type == TokenType::Keyword(Keyword::Else) {
+            tokens.move_next().unwrap();
+            if tokens.peek()?.token_type == TokenType::Keyword(Keyword::If) {
+                tokens.move_next().unwrap();
+                elseifs.push(ElseIf(parse_expr(tokens)?, parse_scoped_block(tokens)?));
+            } else {
+                block_else = Some(parse_scoped_block(tokens)?);
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+
+    Ok(If(cond, block, elseifs, block_else))
+}
+
 fn parse_primary(tokens: &mut TokenIterator) -> CompilerResult<Primary> {
     let token = tokens.next()?;
     match token.token_type {
         TokenType::Identifier(ref id) => Ok(Primary::Identifier(Identifier(id.clone()))),
         TokenType::Integer(ref i, ref suffix) => Ok(Primary::Integer(i.clone(), suffix.clone())),
-        TokenType::Keyword(Keyword::If) => Ok(Primary::If(If(
-            parse_expr(tokens)?,
-            parse_scoped_block(tokens)?,
-            None,
-        ))),
+        TokenType::Keyword(Keyword::If) => Ok(Primary::If(parse_if(tokens)?)),
         _ => Err(CompilerError::with_loc(
             "Parser: Invalid primary",
             token.loc,
