@@ -5,11 +5,25 @@ pub struct Identifier(pub String);
 pub struct ScopedBlock(pub Vec<AstNode>);
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct FunctionHeader(
-    Identifier,
-    Vec<(Identifier, Identifier)>,
-    Option<Identifier>,
-);
+pub struct FunctionHeader {
+    pub identifier: Identifier,
+    pub args: Vec<(Identifier, Identifier)>,
+    pub ret_type: Option<Identifier>,
+}
+
+impl FunctionHeader {
+    pub fn new(
+        identifier: Identifier,
+        args: Vec<(Identifier, Identifier)>,
+        ret_type: Option<Identifier>,
+    ) -> FunctionHeader {
+        FunctionHeader {
+            identifier,
+            args,
+            ret_type,
+        }
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct If(
@@ -100,16 +114,6 @@ pub enum Expr {
 impl Expr {
     pub fn unbox(value: Box<Self>) -> Self {
         *value
-    }
-}
-
-impl FunctionHeader {
-    pub fn new(
-        name: Identifier,
-        args: Vec<(Identifier, Identifier)>,
-        return_type: Option<Identifier>,
-    ) -> Self {
-        FunctionHeader(name, args, return_type)
     }
 }
 
