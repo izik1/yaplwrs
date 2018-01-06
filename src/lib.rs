@@ -35,7 +35,10 @@ mod tests {
 
         fn foo_no_args(body: ScopedBlock) -> AstNode {
             AstNode::Mod(vec![
-                AstNode::Function(Function::new(FunctionHeader::new(identifier("foo"), vec![], None), body)),
+                AstNode::Function(Function::new(
+                    FunctionHeader::new(identifier("foo"), vec![], None),
+                    body,
+                )),
             ])
         }
 
