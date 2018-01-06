@@ -85,7 +85,7 @@ mod tests {
                 parse("fn foo() { q + if a {1} else if b {2} else if c {3} else {4} }").unwrap(),
                 foo_no_args(ScopedBlock(vec![
                     AstNode::Expr(Expr::Binary(
-                        BinOperator::Plus,
+                        BinOperator::BinAdd,
                         Box::new(Expr::Primary(Primary::Identifier(identifier("q")))),
                         Box::new(Expr::Primary(Primary::If(If(
                             Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
@@ -116,14 +116,14 @@ mod tests {
                     "10 + 4 * 5 / 2 - 1",
                     ScopedBlock(vec![
                         AstNode::Expr(Expr::Binary(
-                            BinOperator::Minus,
+                            BinOperator::BinSub,
                             Box::new(Expr::Binary(
-                                BinOperator::Plus,
+                                BinOperator::BinAdd,
                                 Box::new(prim_i32(10)),
                                 Box::new(Expr::Binary(
-                                    BinOperator::Slash,
+                                    BinOperator::BinDiv,
                                     Box::new(Expr::Binary(
-                                        BinOperator::Star,
+                                        BinOperator::BinMul,
                                         Box::new(prim_i32(4)),
                                         Box::new(prim_i32(5)),
                                     )),
@@ -142,13 +142,13 @@ mod tests {
                     "-a --b",
                     ScopedBlock(vec![
                         AstNode::Expr(Expr::Binary(
-                            BinOperator::Minus,
+                            BinOperator::BinSub,
                             Box::new(Expr::Unary(
-                                UnaryOperator::Minus,
+                                UnaryOperator::UnNeg,
                                 Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
                             )),
                             Box::new(Expr::Unary(
-                                UnaryOperator::Minus,
+                                UnaryOperator::UnNeg,
                                 Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
                             )),
                         )),

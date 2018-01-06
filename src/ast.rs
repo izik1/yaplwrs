@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct Identifier(pub String);
 
@@ -62,24 +64,52 @@ pub enum Associativity {
     Left,
 }
 
+impl fmt::Display for Associativity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match *self {
+                Associativity::Left => "Left",
+                Associativity::Right => "Right",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum BinOperator {
-    Plus,
-    Minus,
-    Star,
-    Slash,
+    BinAdd,
+    BinSub,
+    BinMul,
+    BinDiv,
+}
+
+impl fmt::Display for BinOperator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match *self {
+                BinOperator::BinAdd => "+",
+                BinOperator::BinSub => "-",
+                BinOperator::BinMul => "*",
+                BinOperator::BinDiv => "/",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum UnaryOperator {
-    Minus,
+    UnNeg,
 }
 
 impl UnaryOperator {
     pub fn from_token_type(ty: &::token::TokenType) -> Option<Self> {
         use token::{Grammar, TokenType};
         match *ty {
-            TokenType::Grammar(Grammar::Minus) => Some(UnaryOperator::Minus),
+            TokenType::Grammar(Grammar::Minus) => Some(UnaryOperator::UnNeg),
             _ => None,
         }
     }
@@ -90,10 +120,10 @@ impl BinOperator {
         use token::{Grammar, TokenType};
         match *ty {
             TokenType::Grammar(ref g) => match *g {
-                Grammar::Plus => Some(BinOperator::Plus),
-                Grammar::Slash => Some(BinOperator::Slash),
-                Grammar::Minus => Some(BinOperator::Minus),
-                Grammar::Star => Some(BinOperator::Star),
+                Grammar::Plus => Some(BinOperator::BinAdd),
+                Grammar::Slash => Some(BinOperator::BinDiv),
+                Grammar::Minus => Some(BinOperator::BinSub),
+                Grammar::Star => Some(BinOperator::BinMul),
                 _ => None,
             },
             _ => None,
@@ -102,16 +132,17 @@ impl BinOperator {
 
     pub fn precedence(&self) -> usize {
         match *self {
-            BinOperator::Plus | BinOperator::Minus => 150,
-            BinOperator::Star | BinOperator::Slash => 200,
+            BinOperator::BinAdd | BinOperator::BinSub => 150,
+            BinOperator::BinMul | BinOperator::BinDiv => 200,
         }
     }
 
     pub fn associativity(&self) -> Associativity {
         match *self {
-            BinOperator::Plus | BinOperator::Minus | BinOperator::Star | BinOperator::Slash => {
-                Associativity::Left
-            }
+            BinOperator::BinAdd
+            | BinOperator::BinSub
+            | BinOperator::BinMul
+            | BinOperator::BinDiv => Associativity::Left,
         }
     }
 }
