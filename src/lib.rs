@@ -35,7 +35,7 @@ mod tests {
 
         fn foo_no_args(body: ScopedBlock) -> AstNode {
             AstNode::Mod(vec![
-                AstNode::Function(FunctionHeader::new(identifier("foo"), vec![], None), body),
+                AstNode::Function(Function::new(FunctionHeader::new(identifier("foo"), vec![], None), body)),
             ])
         }
 
@@ -168,10 +168,10 @@ mod tests {
                 assert_eq!(
                     parse("fn foo() -> bar {}").unwrap(),
                     AstNode::Mod(vec![
-                        AstNode::Function(
+                        AstNode::Function(Function::new(
                             FunctionHeader::new(identifier("foo"), vec![], Some(identifier("bar"))),
                             ScopedBlock(vec![]),
-                        ),
+                        )),
                     ])
                 )
             }
@@ -181,7 +181,7 @@ mod tests {
                 assert_eq!(
                     parse("fn foo(q: bar, z: u32) {}").unwrap(),
                     AstNode::Mod(vec![
-                        AstNode::Function(
+                        AstNode::Function(Function::new(
                             FunctionHeader::new(
                                 identifier("foo"),
                                 vec![
@@ -191,7 +191,7 @@ mod tests {
                                 None,
                             ),
                             ScopedBlock(vec![]),
-                        ),
+                        )),
                     ])
                 )
             }
@@ -202,7 +202,7 @@ mod tests {
                 assert_ne!(
                     parse("fn foo(q: bar z: u32) {}").unwrap(),
                     AstNode::Mod(vec![
-                        AstNode::Function(
+                        AstNode::Function(Function::new(
                             FunctionHeader::new(
                                 identifier("foo"),
                                 vec![
@@ -212,7 +212,7 @@ mod tests {
                                 None,
                             ),
                             ScopedBlock(vec![]),
-                        ),
+                        )),
                     ])
                 )
             }

@@ -233,10 +233,10 @@ fn parse_fn(tokens: &mut TokenIterator) -> CompilerResult<AstNode> {
         _ => None,
     };
 
-    Ok(AstNode::Function(
+    Ok(AstNode::Function(Function::new(
         FunctionHeader::new(name, args, return_type),
         parse_scoped_block(tokens)?,
-    ))
+    )))
 }
 
 fn parse_mod(mut tokens: TokenIterator) -> CompilerResult<AstNode> {

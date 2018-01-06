@@ -5,6 +5,18 @@ pub struct Identifier(pub String);
 pub struct ScopedBlock(pub Vec<AstNode>);
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct Function {
+    pub header: FunctionHeader,
+    pub body: ScopedBlock,
+}
+
+impl Function {
+    pub fn new(header: FunctionHeader, body: ScopedBlock) -> Self {
+        Function { header, body }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct FunctionHeader {
     pub identifier: Identifier,
     pub args: Vec<(Identifier, Identifier)>,
@@ -121,7 +133,7 @@ impl Expr {
 pub enum AstNode {
     Token(::token::Token),
     Mod(Vec<AstNode>),
-    Function(FunctionHeader, ScopedBlock),
+    Function(Function),
     ScopedBlock(ScopedBlock),
     Expr(Expr),
 }
