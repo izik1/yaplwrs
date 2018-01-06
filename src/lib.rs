@@ -53,6 +53,22 @@ mod tests {
         }
 
         #[test]
+        fn fn_call() {
+            run_test_inside_fn(
+                "foo(a, b)",
+                ScopedBlock(vec![
+                    AstNode::Expr(Expr::Primary(Primary::FunctionCall(
+                        identifier("foo"),
+                        vec![
+                            Expr::Primary(Primary::Identifier(identifier("a"))),
+                            Expr::Primary(Primary::Identifier(identifier("b"))),
+                        ],
+                    ))),
+                ]),
+            )
+        }
+
+        #[test]
         fn scope() {
             run_test_inside_fn(
                 "{}",

@@ -27,6 +27,7 @@ pub enum Primary {
     If(If),
     Integer(String, String),
     Identifier(Identifier),
+    FunctionCall(Identifier, Vec<Expr>),
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
