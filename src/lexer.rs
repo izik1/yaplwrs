@@ -106,7 +106,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn lex_number(&mut self) -> Option<Token> {
+    fn lex_number(&mut self) -> Token {
         let start = self.pos;
 
         let mut num = String::new();
@@ -126,7 +126,6 @@ impl<'a> Lexer<'a> {
 
         let num_pos = self.pos;
 
-        let mut suffix = "i32".to_string();
         while let Some(ch) = self.chars.peek() {
             if ch == &'_' || ch.is_alphanumeric() {
                 self.chars.next();
@@ -136,17 +135,19 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        if self.pos > num_pos {
-            suffix = self.input[num_pos..self.pos].to_string();
-        }
+        let suffix = if self.pos > num_pos {
+            self.input[num_pos..self.pos].to_string()
+        } else {
+            "i32".to_string()
+        };
 
-        Some(Token::new(
+        Token::new(
             Loc::from_string(self.input, start),
             TokenType::Integer(num, suffix),
-        ))
+        )
     }
 
-    fn lex_identifier(&mut self) -> Option<Token> {
+    fn lex_identifier(&mut self) -> Token {
         let start = self.pos;
 
         while let Some(ch) = self.chars.peek() {
@@ -158,7 +159,7 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Some(Token::new(
+        Token::new(
             Loc::from_string(self.input, start),
             match &self.input[start..self.pos] {
                 "const" => TokenType::Keyword(Keyword::Const),
@@ -167,10 +168,10 @@ impl<'a> Lexer<'a> {
                 "else" => TokenType::Keyword(Keyword::Else),
                 id => TokenType::Identifier(id.to_string()),
             },
-        ))
+        )
     }
 
-    fn lex_operator(&mut self) -> CompilerResult<Option<Token>> {
+    fn lex_operator(&mut self) -> CompilerResult<Token> {
         let start = self.pos;
         let mut pos = self.pos;
 
@@ -204,7 +205,7 @@ impl<'a> Lexer<'a> {
 
         if let Some(op) = ops.get(&self.input[start..pos]) {
             self.pos = pos;
-            Ok(Some(Token::new(loc, TokenType::Grammar(*op))))
+            Ok(Token::new(loc, TokenType::Grammar(*op)))
         } else {
             Err(CompilerError::with_loc("ICE, this is a bug", loc))
         }
@@ -212,14 +213,14 @@ impl<'a> Lexer<'a> {
 
     pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
         self.nom_whitespace();
-        if let Some(lookahead) = self.chars.peek() {
-            Ok(match *lookahead {
+        Ok(if let Some(lookahead) = self.chars.peek() {
+            Some(match *lookahead {
                 '0'...'9' => self.lex_number(),
                 'A'...'Z' | 'a'...'z' | '_' => self.lex_identifier(),
                 _ => self.lex_operator()?,
             })
         } else {
-            Ok(None)
-        }
+            None
+        })
     }
 }

@@ -95,31 +95,42 @@ fn parse_if(tokens: &mut TokenIterator) -> CompilerResult<If> {
     Ok(If(cond, block, elseifs, block_else))
 }
 
+fn parse_var_with_type(tokens: &mut TokenIterator) -> CompilerResult<(Identifier, Identifier)> {
+    let name = next_identifier(tokens)?;
+    tokens.move_required(&TokenType::Grammar(Grammar::Colon))?;
+    Ok((name, next_identifier(tokens)?))
+}
+
+fn parse_call(tokens: &mut TokenIterator, id: Identifier) -> CompilerResult<Primary> {
+    tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
+    let mut args = vec![];
+    loop {
+        if tokens.peek()?.token_type == TokenType::Grammar(Grammar::CloseParen) {
+            tokens.move_next().unwrap();
+            break;
+        } else {
+            args.push(Expr::unbox(parse_expr(tokens)?));
+            if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
+                tokens.move_next().unwrap();
+            }
+        }
+    }
+
+    Ok(Primary::FunctionCall(id, args))
+}
+
 fn parse_primary(tokens: &mut TokenIterator) -> CompilerResult<Primary> {
     let token = tokens.next()?;
     match token.token_type {
         TokenType::Identifier(ref id) => {
             let id = Identifier(id.clone());
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::OpenParen) {
-                let mut args = vec![];
-                tokens.move_next().unwrap();
-                loop {
-                    if tokens.peek()?.token_type == TokenType::Grammar(Grammar::CloseParen) {
-                        tokens.move_next().unwrap();
-                        break;
-                    } else {
-                        args.push(Expr::unbox(parse_expr(tokens)?));
-                        if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
-                            tokens.move_next().unwrap();
-                        }
-                    }
-                }
-
-                Ok(Primary::FunctionCall(id, args))
+                parse_call(tokens, id)
             } else {
                 Ok(Primary::Identifier(id))
             }
         }
+
         TokenType::Integer(ref i, ref suffix) => Ok(Primary::Integer(i.clone(), suffix.clone())),
         TokenType::Keyword(Keyword::If) => Ok(Primary::If(parse_if(tokens)?)),
         _ => Err(CompilerError::with_loc(
@@ -211,9 +222,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> CompilerResult<AstNode> {
 
     if let TokenType::Identifier(_) = tokens.peek()?.token_type {
         loop {
-            let name = next_identifier(tokens)?;
-            tokens.move_required(&TokenType::Grammar(Grammar::Colon))?;
-            args.push((name, next_identifier(tokens)?));
+            args.push(parse_var_with_type(tokens)?);
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
                 tokens.move_next().unwrap();
             } else {
