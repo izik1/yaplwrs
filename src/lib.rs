@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate maplit;
 
+#[macro_use]
 extern crate proptest;
 
 pub mod error;
