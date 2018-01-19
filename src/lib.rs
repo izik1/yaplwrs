@@ -1,4 +1,4 @@
-#![feature(nll)]
+#![feature(nll, catch_expr)]
 
 #[macro_use]
 extern crate maplit;
@@ -11,7 +11,7 @@ mod lexer;
 mod parser;
 
 pub fn lex(string: &str) -> Result<Vec<token::Token>, error::CompilerError> {
-    lexer::Lexer::new(string).lex_all()
+    lexer::Lexer::new(string)?.lex_all()
 }
 
 pub fn parse(string: &str) -> Result<ast::AstNode, error::CompilerError> {

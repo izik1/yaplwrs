@@ -10,13 +10,13 @@ mod tests {
 
     #[test]
     fn empty_lex() {
-        assert_eq!(Lexer::new("").lex_all().unwrap(), vec![])
+        assert_eq!(Lexer::new("").unwrap().lex_all().unwrap(), vec![])
     }
 
     #[test]
     fn identifiers() {
         assert_eq!(
-            Lexer::new("a A2").lex_all().unwrap(),
+            Lexer::new("a A2").unwrap().lex_all().unwrap(),
             vec![
                 Token::new(Loc::new(1, 1), TokenType::Identifier("a".to_string())),
                 Token::new(Loc::new(1, 3), TokenType::Identifier("A2".to_string())),
@@ -27,7 +27,7 @@ mod tests {
     #[test]
     fn grammar_at_end_of_input() {
         assert_eq!(
-            Lexer::new("(").lex_all().unwrap(),
+            Lexer::new("(").unwrap().lex_all().unwrap(),
             vec![
                 Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::OpenParen)),
             ]
@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn op_longest_match() {
         assert_eq!(
-            Lexer::new("->").lex_all().unwrap(),
+            Lexer::new("->").unwrap().lex_all().unwrap(),
             vec![
                 Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Arrow)),
             ]
@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn suffixed_numbers() {
         assert_eq!(
-            Lexer::new("123u8").lex_all().unwrap(),
+            Lexer::new("123u8").unwrap().lex_all().unwrap(),
             vec![
                 Token::new(
                     Loc::new(1, 1),
@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn underscores_in_numbers() {
         assert_eq!(
-            Lexer::new("123_45_6__u32").lex_all().unwrap(),
+            Lexer::new("123_45_6__u32").unwrap().lex_all().unwrap(),
             vec![
                 Token::new(
                     Loc::new(1, 1),
@@ -68,6 +68,11 @@ mod tests {
                 ),
             ]
         )
+    }
+
+    #[test] // Better name needed.
+    fn no_unicode_crashes() {
+        let _ = do catch { Lexer::new("fn 日本語() {}")?.lex_all() };
     }
 }
 
@@ -78,11 +83,15 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Lexer<'a> {
-        Lexer {
-            input,
-            chars: Box::new(input.chars().peekable()),
-            pos: 0,
+    pub fn new(input: &'a str) -> CompilerResult<Lexer<'a>> {
+        if input.is_ascii() {
+            Ok(Lexer {
+                input,
+                chars: Box::new(input.chars().peekable()),
+                pos: 0,
+            })
+        } else {
+            Err(CompilerError::new(""))
         }
     }
 
