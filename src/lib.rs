@@ -3,6 +3,8 @@
 #[macro_use]
 extern crate maplit;
 
+extern crate proptest;
+
 pub mod error;
 pub mod token;
 pub mod util;
@@ -161,9 +163,20 @@ mod tests {
         mod function {
             use super::*;
 
-            #[test]
-            fn empty_fn() {
-                run_test_inside_fn("", ScopedBlock(vec![]))
+            proptest! {
+                #[test]
+                fn empty_fn(ref id in "[A-Za-z_][A-Za-z0-9]*") {
+                println!("fn {}() -> {{}}", id);
+                     prop_assert_eq!(
+                        parse(&format!("fn {}() {{}}", id))?,
+                        AstNode::Mod(vec![
+                            AstNode::Function(Function::new(
+                                FunctionHeader::new(identifier(id), vec![], None),
+                                ScopedBlock(vec![]),
+                            ))
+                        ])
+                    )
+                }
             }
 
             #[test]

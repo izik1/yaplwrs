@@ -9,3 +9,4 @@ path = "src/lib.rs"
 
 [dependencies]
 maplit = "1.0"
+proptest = "0.4.0"

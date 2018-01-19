@@ -8,8 +8,32 @@ use error::*;
 mod tests {
     use super::*;
 
+    proptest! {
+        #[test]
+        fn assert_no_panics(ref s in ".*") {
+            let _ = do catch { Lexer::new(s)?.lex_all() };
+        }
+
+        #[test]
+        fn identifier(ref s in "[A-Za-z_][A-Za-z_0-9]*") {
+            assert_eq!(
+                Lexer::new(s).unwrap().lex_all().unwrap(),
+                vec![Token::new(Loc::new(1, 1), TokenType::Identifier(s.to_string()))]
+             );
+
+        }
+
+        #[test]
+        fn suffixed_number(ref num in "[0-9][0-9_]*", ref suffix in "[A-Za-z][A-Za-z_]*") {
+            assert_eq!(
+                Lexer::new(&format!("{}{}", num, suffix)).unwrap().lex_all().unwrap(),
+                vec![Token::new(Loc::new(1, 1), TokenType::Integer(str::replace(num, "_", ""), suffix.to_string()))]
+             );
+        }
+    }
+
     #[test]
-    fn empty_lex() {
+    fn empty() {
         assert_eq!(Lexer::new("").unwrap().lex_all().unwrap(), vec![])
     }
 
@@ -42,37 +66,6 @@ mod tests {
                 Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Arrow)),
             ]
         )
-    }
-
-    #[test]
-    fn suffixed_numbers() {
-        assert_eq!(
-            Lexer::new("123u8").unwrap().lex_all().unwrap(),
-            vec![
-                Token::new(
-                    Loc::new(1, 1),
-                    TokenType::Integer("123".to_string(), "u8".to_string()),
-                ),
-            ]
-        )
-    }
-
-    #[test]
-    fn underscores_in_numbers() {
-        assert_eq!(
-            Lexer::new("123_45_6__u32").unwrap().lex_all().unwrap(),
-            vec![
-                Token::new(
-                    Loc::new(1, 1),
-                    TokenType::Integer("123456".to_string(), "u32".to_string()),
-                ),
-            ]
-        )
-    }
-
-    #[test] // Better name needed.
-    fn no_unicode_crashes() {
-        let _ = do catch { Lexer::new("fn 日本語() {}")?.lex_all() };
     }
 }
 
