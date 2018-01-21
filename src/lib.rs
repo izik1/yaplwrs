@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate maplit;
 
+#[cfg(test)]
 #[macro_use]
 extern crate proptest;
 
