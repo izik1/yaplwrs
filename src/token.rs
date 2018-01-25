@@ -43,12 +43,12 @@ pub enum TokenType {
 
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &TokenType::Grammar(ref g) => write!(f, "{}", g),
-            &TokenType::Identifier(ref id) => write!(f, "{}", id),
-            &TokenType::Integer(ref i, ref ty) if ty != "i32" => write!(f, "{}_{}", i, ty),
-            &TokenType::Integer(ref i, _) => write!(f, "{}", i),
-            &TokenType::Keyword(ref k) => write!(f, "{}", k),
+        match *self {
+            TokenType::Grammar(ref g) => write!(f, "{}", g),
+            TokenType::Identifier(ref id) => write!(f, "{}", id),
+            TokenType::Integer(ref i, ref ty) if ty != "i32" => write!(f, "{}_{}", i, ty),
+            TokenType::Integer(ref i, _) => write!(f, "{}", i),
+            TokenType::Keyword(ref k) => write!(f, "{}", k),
         }
     }
 }

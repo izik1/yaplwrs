@@ -49,3 +49,32 @@ pub fn str_index_ln_col(string: &str, index: usize) -> Result<(usize, usize), &'
         Ok((ln, column))
     }
 }
+
+pub fn str_fn_ln_col(
+    string: &str,
+    f: &Fn(char) -> bool,
+) -> ::error::CompilerResult<Option<(usize, usize)>> {
+    use error::CompilerError;
+    let mut ln = 1;
+    let mut col = 1;
+    for c in string.chars() {
+        if f(c) {
+            if c == '\n' {
+                return Err(CompilerError::new(
+                    "Trying to get line / column of unprintable character",
+                ));
+            }
+
+            return Ok(Some((ln, col)));
+        }
+
+        if c == '\n' {
+            ln += 1;
+            col = 0;
+        }
+
+        col += 1;
+    }
+
+    Ok(None)
+}

@@ -3,12 +3,12 @@ use token::*;
 use ast::*;
 
 struct TokenIterator<'a> {
-    tokens: &'a Vec<Token>,
+    tokens: &'a [Token],
     pos: usize,
 }
 
 impl<'a> TokenIterator<'a> {
-    pub fn new(tokens: &'a Vec<Token>) -> Self {
+    pub fn new(tokens: &'a [Token]) -> Self {
         TokenIterator { tokens, pos: 0 }
     }
 
@@ -49,7 +49,7 @@ impl<'a> TokenIterator<'a> {
     }
 }
 
-pub fn parse<'a>(tokens: &'a Vec<Token>) -> CompilerResult<AstNode> {
+pub fn parse(tokens: &[Token]) -> CompilerResult<AstNode> {
     parse_mod(TokenIterator::new(tokens))
 }
 
@@ -109,7 +109,7 @@ fn parse_call(tokens: &mut TokenIterator, id: Identifier) -> CompilerResult<Prim
             tokens.move_next().unwrap();
             break;
         } else {
-            args.push(Expr::unbox(parse_expr(tokens)?));
+            args.push(*parse_expr(tokens)?);
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
                 tokens.move_next().unwrap();
             }
@@ -196,7 +196,7 @@ fn parse_scoped_block(tokens: &mut TokenIterator) -> CompilerResult<ScopedBlock>
                 break;
             }
 
-            _ => vec.push(AstNode::Expr(Expr::unbox(parse_expr(tokens)?))),
+            _ => vec.push(AstNode::Expr(*parse_expr(tokens)?)),
         };
     }
 

@@ -87,11 +87,10 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> CompilerResult<Lexer<'a>> {
-        if let Some(index) = input.chars().position(|c| !c.is_ascii()) {
+        if let Some(pos) = super::util::str_fn_ln_col(input, &|c: char| !c.is_ascii())? {
             Err(CompilerError::with_loc(
                 "Lexer: Non ascii string",
-                // TODO: Look in to the performance of this as it's effectively looping over the string twice. (once to get the index, once to get the line / column)
-                Loc::from_string(input, index),
+                Loc::from_tuple(pos),
             ))
         } else {
             Ok(Lexer {

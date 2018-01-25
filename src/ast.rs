@@ -154,12 +154,6 @@ pub enum Expr {
     Primary(Primary),
 }
 
-impl Expr {
-    pub fn unbox(value: Box<Self>) -> Self {
-        *value
-    }
-}
-
 #[derive(Debug, Eq, PartialEq)]
 pub enum AstNode {
     Token(::token::Token),
