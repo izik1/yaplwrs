@@ -49,6 +49,16 @@ mod tests {
     }
 
     #[test]
+    fn colon_is_colon() {
+        assert_eq!(
+            Lexer::new(&format!("{}", TokenType::Grammar(Grammar::Colon))).unwrap().lex_all().unwrap(),
+            vec![
+                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Colon))
+            ]
+        )
+    }
+
+    #[test]
     fn grammar_at_end_of_input() {
         assert_eq!(
             Lexer::new("(").unwrap().lex_all().unwrap(),

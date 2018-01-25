@@ -108,7 +108,7 @@ impl fmt::Display for Grammar {
                 Grammar::Star => "*",
                 Grammar::Slash => "/",
                 Grammar::SemiColon => ";",
-                Grammar::Colon => ";",
+                Grammar::Colon => ":",
                 Grammar::Comma => ",",
             }
         )
