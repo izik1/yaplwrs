@@ -1,5 +1,6 @@
 use std::convert;
 use util::Span;
+use super::lexer;
 
 #[derive(Debug, Clone)]
 pub struct SpanError {
@@ -15,10 +16,17 @@ impl SpanError {
 
 #[derive(Debug, Clone)]
 pub enum Error {
+    Lexer(lexer::Error),
     Span(SpanError),
     String(String),
     Other(&'static str),
     ICE(Option<Span>),
+}
+
+impl convert::From<lexer::Error> for Error {
+    fn from(e: lexer::Error) -> Self {
+        Error::Lexer(e)
+    }
 }
 
 impl convert::From<SpanError> for Error {

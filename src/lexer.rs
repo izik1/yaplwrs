@@ -2,7 +2,14 @@ use std::iter::Peekable;
 use std::str::Chars;
 use token::*;
 use util::Span;
-use error::*;
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    NonAsciiString(usize),
+    UnmappedCharacter(usize),
+}
+
+type Result<T> = ::std::result::Result<T, Error>;
 
 #[cfg(test)]
 mod tests {
@@ -18,7 +25,7 @@ mod tests {
         fn identifier(ref s in "[A-Za-z_][A-Za-z_0-9]*") {
             assert_eq!(
                 Lexer::new(s).unwrap().lex_all().unwrap(),
-                vec![Token::new(Loc::new(1, 1), TokenType::Identifier(s.to_string()))]
+                vec![Token::new(Span::new(0, s.len()), TokenType::Identifier(s.to_string()))]
              );
 
         }
@@ -27,7 +34,7 @@ mod tests {
         fn suffixed_number(ref num in "[0-9][0-9_]*", ref suffix in "[A-Za-z][A-Za-z_]*") {
             assert_eq!(
                 Lexer::new(&format!("{}{}", num, suffix)).unwrap().lex_all().unwrap(),
-                vec![Token::new(Loc::new(1, 1), TokenType::Integer(str::replace(num, "_", ""), suffix.to_string()))]
+                vec![Token::new(Span::new(0, num.len() + suffix.len()), TokenType::Integer(str::replace(num, "_", ""), suffix.to_string()))]
              );
         }
     }
@@ -42,8 +49,8 @@ mod tests {
         assert_eq!(
             Lexer::new("a A2").unwrap().lex_all().unwrap(),
             vec![
-                Token::new(Loc::new(1, 1), TokenType::Identifier("a".to_string())),
-                Token::new(Loc::new(1, 3), TokenType::Identifier("A2".to_string())),
+                Token::new(Span::new(0, 1), TokenType::Identifier("a".to_string())),
+                Token::new(Span::new(2, 2), TokenType::Identifier("A2".to_string())),
             ]
         )
     }
@@ -56,7 +63,7 @@ mod tests {
                 .lex_all()
                 .unwrap(),
             vec![
-                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Colon)),
+                Token::new(Span::new(0, 1), TokenType::Grammar(Grammar::Colon)),
             ]
         )
     }
@@ -66,7 +73,7 @@ mod tests {
         assert_eq!(
             Lexer::new("(").unwrap().lex_all().unwrap(),
             vec![
-                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::OpenParen)),
+                Token::new(Span::new(0, 1), TokenType::Grammar(Grammar::OpenParen)),
             ]
         )
     }
@@ -76,7 +83,7 @@ mod tests {
         assert_eq!(
             Lexer::new("->").unwrap().lex_all().unwrap(),
             vec![
-                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Arrow)),
+                Token::new(Span::new(0, 2), TokenType::Grammar(Grammar::Arrow)),
             ]
         )
     }
@@ -91,10 +98,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Result<Lexer<'a>> {
         if let Some(pos) = input.chars().position(|c| !c.is_ascii()) {
-            Err(Error::Span(SpanError::new(
-                "Lexer: Non ascii string".to_string(),
-                Span::new(pos, 1),
-            )))
+            Err(Error::NonAsciiString(pos))
         } else {
             Ok(Lexer {
                 input,
@@ -219,13 +223,14 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        let span = Span::new(start, start - pos);
-
         if let Some(op) = ops.get(&self.input[start..pos]) {
             self.pos = pos;
-            Ok(Token::new(span, TokenType::Grammar(*op)))
+            Ok(Token::new(
+                Span::new(start, pos - start),
+                TokenType::Grammar(*op),
+            ))
         } else {
-            Err(Error::ICE(Some(span)))
+            Err(Error::UnmappedCharacter(start))
         }
     }
 

@@ -15,7 +15,7 @@ mod lexer;
 mod parser;
 
 pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
-    lexer::Lexer::new(string)?.lex_all()
+    Ok(lexer::Lexer::new(string)?.lex_all()?)
 }
 
 pub fn parse(string: &str) -> Result<ast::AstNode, error::Error> {
@@ -170,7 +170,7 @@ mod tests {
                 fn empty_fn(ref id in "[A-Za-z_][A-Za-z0-9]*") {
                 println!("fn {}() -> {{}}", id);
                      prop_assert_eq!(
-                        parse(&format!("fn {}() {{}}", id))?,
+                        parse(&format!("fn {}() {{}}", id)).unwrap(),
                         AstNode::Mod(vec![
                             AstNode::Function(Function::new(
                                 FunctionHeader::new(identifier(id), vec![], None),
