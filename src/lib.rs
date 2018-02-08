@@ -14,11 +14,11 @@ mod ast;
 mod lexer;
 mod parser;
 
-pub fn lex(string: &str) -> Result<Vec<token::Token>, error::CompilerError> {
+pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
     lexer::Lexer::new(string)?.lex_all()
 }
 
-pub fn parse(string: &str) -> Result<ast::AstNode, error::CompilerError> {
+pub fn parse(string: &str) -> Result<ast::AstNode, error::Error> {
     parser::parse(&lex(string)?)
 }
 

@@ -1,7 +1,7 @@
 use std::iter::Peekable;
 use std::str::Chars;
 use token::*;
-use util::Loc;
+use util::Span;
 use error::*;
 
 #[cfg(test)]
@@ -51,9 +51,12 @@ mod tests {
     #[test]
     fn colon_is_colon() {
         assert_eq!(
-            Lexer::new(&format!("{}", TokenType::Grammar(Grammar::Colon))).unwrap().lex_all().unwrap(),
+            Lexer::new(&format!("{}", TokenType::Grammar(Grammar::Colon)))
+                .unwrap()
+                .lex_all()
+                .unwrap(),
             vec![
-                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Colon))
+                Token::new(Loc::new(1, 1), TokenType::Grammar(Grammar::Colon)),
             ]
         )
     }
@@ -86,12 +89,12 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> CompilerResult<Lexer<'a>> {
-        if let Some(pos) = super::util::str_fn_ln_col(input, &|c: char| !c.is_ascii())? {
-            Err(CompilerError::with_loc(
-                "Lexer: Non ascii string",
-                Loc::from_tuple(pos),
-            ))
+    pub fn new(input: &'a str) -> Result<Lexer<'a>> {
+        if let Some(pos) = input.chars().position(|c| !c.is_ascii()) {
+            Err(Error::Span(SpanError::new(
+                "Lexer: Non ascii string".to_string(),
+                Span::new(pos, 1),
+            )))
         } else {
             Ok(Lexer {
                 input,
@@ -101,7 +104,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn lex_all(mut self) -> CompilerResult<Vec<Token>> {
+    pub fn lex_all(mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
         while let Some(t) = self.lex()? {
             tokens.push(t);
@@ -157,7 +160,7 @@ impl<'a> Lexer<'a> {
         };
 
         Token::new(
-            Loc::from_string(self.input, start),
+            Span::new(start, self.pos - start),
             TokenType::Integer(num, suffix),
         )
     }
@@ -175,7 +178,7 @@ impl<'a> Lexer<'a> {
         }
 
         Token::new(
-            Loc::from_string(self.input, start),
+            Span::new(start, self.pos - start),
             match &self.input[start..self.pos] {
                 "const" => TokenType::Keyword(Keyword::Const),
                 "fn" => TokenType::Keyword(Keyword::Function),
@@ -186,7 +189,7 @@ impl<'a> Lexer<'a> {
         )
     }
 
-    fn lex_operator(&mut self) -> CompilerResult<Token> {
+    fn lex_operator(&mut self) -> Result<Token> {
         let start = self.pos;
         let mut pos = self.pos;
 
@@ -216,17 +219,17 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        let loc = Loc::from_string(self.input, start);
+        let span = Span::new(start, start - pos);
 
         if let Some(op) = ops.get(&self.input[start..pos]) {
             self.pos = pos;
-            Ok(Token::new(loc, TokenType::Grammar(*op)))
+            Ok(Token::new(span, TokenType::Grammar(*op)))
         } else {
-            Err(CompilerError::with_loc("ICE, this is a bug", loc))
+            Err(Error::ICE(Some(span)))
         }
     }
 
-    pub fn lex(&mut self) -> CompilerResult<Option<Token>> {
+    pub fn lex(&mut self) -> Result<Option<Token>> {
         self.nom_whitespace();
         Ok(if let Some(lookahead) = self.chars.peek() {
             Some(match *lookahead {

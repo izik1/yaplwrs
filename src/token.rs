@@ -1,35 +1,29 @@
 use std::fmt;
+use super::util;
+use error;
+use error::SpanError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
-    pub loc: super::util::Loc,
+    pub span: util::Span,
     pub token_type: TokenType,
 }
 
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} ({})", self.token_type, self.loc)
-    }
-}
-
 impl Token {
-    pub fn require(&self, expected: &TokenType) -> Result<&Token, ::error::CompilerError> {
+    pub fn require(&self, expected: &TokenType) -> Result<&Token, error::SpanError> {
         match (&self.token_type, expected) {
             (&TokenType::Integer(_, _), &TokenType::Integer(_, _))
             | (&TokenType::Identifier(_), &TokenType::Identifier(_)) => Ok(self),
             _ => if &self.token_type == expected {
                 Ok(self)
             } else {
-                Err(::error::CompilerError::with_loc(
-                    "Unexpected token",
-                    self.loc,
-                ))
+                Err(SpanError::new("Unexpected token".to_string(), self.span))
             },
         }
     }
 
-    pub fn new(loc: ::util::Loc, token_type: TokenType) -> Token {
-        Token { loc, token_type }
+    pub fn new(span: util::Span, token_type: TokenType) -> Token {
+        Token { span, token_type }
     }
 }
 
