@@ -11,14 +11,18 @@ pub struct Token {
 
 impl Token {
     pub fn require(&self, expected: &TokenType) -> Result<&Token, error::SpanError> {
+        if self.matches(expected) {
+            Ok(self)
+        } else {
+            Err(SpanError::new("Unexpected token".to_string(), self.span))
+        }
+    }
+
+    pub fn matches(&self, expected: &TokenType) -> bool {
         match (&self.token_type, expected) {
             (&TokenType::Integer(_, _), &TokenType::Integer(_, _))
-            | (&TokenType::Identifier(_), &TokenType::Identifier(_)) => Ok(self),
-            _ => if &self.token_type == expected {
-                Ok(self)
-            } else {
-                Err(SpanError::new("Unexpected token".to_string(), self.span))
-            },
+            | (&TokenType::Identifier(_), &TokenType::Identifier(_)) => true,
+            _ => &self.token_type == expected,
         }
     }
 

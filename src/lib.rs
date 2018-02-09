@@ -19,7 +19,7 @@ pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
 }
 
 pub fn parse(string: &str) -> Result<ast::AstNode, error::Error> {
-    parser::parse(&lex(string)?)
+    Ok(parser::parse(&lex(string)?)?)
 }
 
 #[cfg(test)]

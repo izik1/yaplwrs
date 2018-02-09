@@ -1,6 +1,21 @@
-use error::*;
+use util::Span;
 use token::*;
 use ast::*;
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    OutOfTokens,
+    ReservedToken(String, Span),
+    IncorrectToken {
+        span: Span,
+        expected: TokenType,
+        actual: TokenType,
+    },
+    InvalidPrimaryExpression(Span),
+    UnexpectedToken(Span, TokenType),
+}
+
+type Result<T> = ::std::result::Result<T, Error>;
 
 struct TokenIterator<'a> {
     tokens: &'a [Token],
@@ -16,13 +31,21 @@ impl<'a> TokenIterator<'a> {
         if self.pos < self.tokens.len() {
             Ok(&self.tokens[self.pos])
         } else {
-            Err(Error::Other("Parser: Unexpected end of tokens"))
+            Err(Error::OutOfTokens)
         }
     }
 
     pub fn move_required(&mut self, token_type: &TokenType) -> Result<()> {
-        self.next()?.require(token_type)?;
-        Ok(())
+        let tok = self.next()?;
+        if tok.matches(token_type) {
+            Ok(())
+        } else {
+            Err(Error::IncorrectToken {
+                span: tok.span,
+                expected: token_type.clone(),
+                actual: tok.token_type.clone(),
+            })
+        }
     }
 
     pub fn next(&mut self) -> Result<&Token> {
@@ -31,7 +54,7 @@ impl<'a> TokenIterator<'a> {
             self.pos += 1;
             tmp
         } else {
-            Err(Error::Other("Parser: Unexpected end of tokens"))
+            Err(Error::OutOfTokens)
         }
     }
 
@@ -40,7 +63,7 @@ impl<'a> TokenIterator<'a> {
             self.pos += 1;
             Ok(())
         } else {
-            Err(Error::Other("Parser: Unexpected end of tokens"))
+            Err(Error::OutOfTokens)
         }
     }
 
@@ -62,11 +85,9 @@ fn parse_unary_expr(tokens: &mut TokenIterator) -> Result<Expr> {
     }
 
     match token.token_type {
-        TokenType::Grammar(Grammar::Plus) => Err(Error::Span(SpanError::new(
-            "Parser: Unary plus is invalid".to_string(),
-            token.span,
-        ))),
-
+        TokenType::Grammar(Grammar::Plus) => {
+            Err(Error::ReservedToken("Unary Plus".to_string(), token.span))
+        }
         _ => Ok(Expr::Primary(parse_primary(tokens)?)),
     }
 }
@@ -133,10 +154,7 @@ fn parse_primary(tokens: &mut TokenIterator) -> Result<Primary> {
 
         TokenType::Integer(ref i, ref suffix) => Ok(Primary::Integer(i.clone(), suffix.clone())),
         TokenType::Keyword(Keyword::If) => Ok(Primary::If(parse_if(tokens)?)),
-        _ => Err(Error::Span(SpanError::new(
-            "Parser: Invalid primary".to_string(),
-            token.span,
-        ))),
+        _ => Err(Error::InvalidPrimaryExpression(token.span)),
     }
 }
 
@@ -207,10 +225,11 @@ fn next_identifier(tokens: &mut TokenIterator) -> Result<Identifier> {
     let tok = tokens.next()?;
     match tok.token_type {
         TokenType::Identifier(ref s) => Ok(Identifier(s.clone())),
-        _ => Err(Error::Span(SpanError::new(
-            "Parser: Expected Identifier but got something else".to_string(),
-            tok.span,
-        ))),
+        _ => Err(Error::IncorrectToken {
+            span: tok.span,
+            expected: TokenType::Identifier("".to_string()),
+            actual: tok.token_type.clone(),
+        }),
     }
 }
 
@@ -254,12 +273,7 @@ fn parse_mod(mut tokens: TokenIterator) -> Result<AstNode> {
         let token = tokens.peek().unwrap();
         match token.token_type {
             TokenType::Keyword(Keyword::Function) => vec.push(parse_fn(&mut tokens)?),
-            _ => {
-                return Err(Error::Span(SpanError::new(
-                    "Parser: unexpected token for module".to_string(),
-                    token.span,
-                )))
-            }
+            _ => return Err(Error::UnexpectedToken(token.span, token.token_type.clone())),
         };
     }
 
