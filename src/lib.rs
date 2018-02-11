@@ -1,4 +1,4 @@
-#![feature(nll, catch_expr)]
+#![feature(nll, catch_expr, box_syntax)]
 
 #[macro_use]
 extern crate maplit;
@@ -90,22 +90,22 @@ mod tests {
                 foo_no_args(ScopedBlock(vec![
                     AstNode::Expr(Expr::Binary(
                         BinOperator::BinAdd,
-                        Box::new(Expr::Primary(Primary::Identifier(identifier("q")))),
-                        Box::new(Expr::Primary(Primary::If(If(
-                            Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
+                        box Expr::Primary(Primary::Identifier(identifier("q"))),
+                        box Expr::Primary(Primary::If(If(
+                            box (Expr::Primary(Primary::Identifier(identifier("a")))),
                             ScopedBlock(vec![AstNode::Expr(prim_int(1))]),
                             vec![
                                 ElseIf(
-                                    Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
+                                    box Expr::Primary(Primary::Identifier(identifier("b"))),
                                     ScopedBlock(vec![AstNode::Expr(prim_int(2))]),
                                 ),
                                 ElseIf(
-                                    Box::new(Expr::Primary(Primary::Identifier(identifier("c")))),
+                                    box Expr::Primary(Primary::Identifier(identifier("c"))),
                                     ScopedBlock(vec![AstNode::Expr(prim_int(3))]),
                                 ),
                             ],
                             Some(ScopedBlock(vec![AstNode::Expr(prim_int(4))])),
-                        )))),
+                        ))),
                     )),
                 ]))
             )
@@ -121,20 +121,20 @@ mod tests {
                     ScopedBlock(vec![
                         AstNode::Expr(Expr::Binary(
                             BinOperator::BinSub,
-                            Box::new(Expr::Binary(
+                            box Expr::Binary(
                                 BinOperator::BinAdd,
-                                Box::new(prim_int(10)),
-                                Box::new(Expr::Binary(
+                                box prim_int(10),
+                                box Expr::Binary(
                                     BinOperator::BinDiv,
-                                    Box::new(Expr::Binary(
+                                    box Expr::Binary(
                                         BinOperator::BinMul,
-                                        Box::new(prim_int(4)),
-                                        Box::new(prim_int(5)),
-                                    )),
-                                    Box::new(prim_int(2)),
-                                )),
-                            )),
-                            Box::new(prim_int(1)),
+                                        box prim_int(4),
+                                        box prim_int(5),
+                                    ),
+                                    box prim_int(2),
+                                ),
+                            ),
+                            box prim_int(1),
                         )),
                     ]),
                 )
@@ -147,14 +147,14 @@ mod tests {
                     ScopedBlock(vec![
                         AstNode::Expr(Expr::Binary(
                             BinOperator::BinSub,
-                            Box::new(Expr::Unary(
+                            box Expr::Unary(
                                 UnaryOperator::UnNeg,
-                                Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
-                            )),
-                            Box::new(Expr::Unary(
+                                box Expr::Primary(Primary::Identifier(identifier("a"))),
+                            ),
+                            box Expr::Unary(
                                 UnaryOperator::UnNeg,
-                                Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
-                            )),
+                                box Expr::Primary(Primary::Identifier(identifier("b"))),
+                            ),
                         )),
                     ]),
                 )

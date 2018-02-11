@@ -81,7 +81,7 @@ fn parse_unary_expr(tokens: &mut TokenIterator) -> Result<Expr> {
 
     if let Some(op) = UnaryOperator::from_token_type(&token.token_type) {
         tokens.move_next()?;
-        return Ok(Expr::Unary(op, Box::new(parse_unary_expr(tokens)?)));
+        return Ok(Expr::Unary(op, box parse_unary_expr(tokens)?));
     }
 
     match token.token_type {
@@ -103,7 +103,7 @@ fn parse_if(tokens: &mut TokenIterator) -> Result<If> {
             tokens.move_next().unwrap();
             if tokens.peek()?.token_type == TokenType::Keyword(Keyword::If) {
                 tokens.move_next().unwrap();
-                elseifs.push(ElseIf(parse_expr(tokens)?, parse_scoped_block(tokens)?));
+                elseifs.push(ElseIf(box parse_expr(tokens)?, parse_scoped_block(tokens)?));
             } else {
                 block_else = Some(parse_scoped_block(tokens)?);
                 break;
@@ -113,7 +113,7 @@ fn parse_if(tokens: &mut TokenIterator) -> Result<If> {
         }
     }
 
-    Ok(If(cond, block, elseifs, block_else))
+    Ok(If(box cond, block, elseifs, block_else))
 }
 
 fn parse_var_with_type(tokens: &mut TokenIterator) -> Result<(Identifier, Identifier)> {
@@ -130,7 +130,7 @@ fn parse_call(tokens: &mut TokenIterator, id: Identifier) -> Result<Primary> {
             tokens.move_next().unwrap();
             break;
         } else {
-            args.push(*parse_expr(tokens)?);
+            args.push(parse_expr(tokens)?);
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
                 tokens.move_next().unwrap();
             }
@@ -158,16 +158,12 @@ fn parse_primary(tokens: &mut TokenIterator) -> Result<Primary> {
     }
 }
 
-fn parse_expr(tokens: &mut TokenIterator) -> Result<Box<Expr>> {
-    let lhs = Box::new(parse_unary_expr(tokens)?);
+fn parse_expr(tokens: &mut TokenIterator) -> Result<Expr> {
+    let lhs = parse_unary_expr(tokens)?;
     parse_bin_expr(tokens, lhs, 0)
 }
 
-fn parse_bin_expr(
-    tokens: &mut TokenIterator,
-    mut lhs: Box<Expr>,
-    min_priority: usize,
-) -> Result<Box<Expr>> {
+fn parse_bin_expr(tokens: &mut TokenIterator, mut lhs: Expr, min_priority: usize) -> Result<Expr> {
     fn precedence_compare(a: &BinOperator, b: &BinOperator) -> bool {
         a.precedence() > b.precedence()
             || (a.precedence() == b.precedence() && (a.associativity() == Associativity::Right))
@@ -181,7 +177,7 @@ fn parse_bin_expr(
 
         tokens.move_next().unwrap();
 
-        let mut rhs = Box::new(parse_unary_expr(tokens)?);
+        let mut rhs = parse_unary_expr(tokens)?;
         lookahead = tokens.peek()?;
 
         while let Some(lookahead_op) = BinOperator::from_token_type(&lookahead.token_type) {
@@ -193,7 +189,7 @@ fn parse_bin_expr(
             lookahead = tokens.peek()?;
         }
 
-        lhs = Box::new(Expr::Binary(op, lhs, rhs));
+        lhs = Expr::Binary(op, box lhs, box rhs);
     }
 
     Ok(lhs)
@@ -214,7 +210,7 @@ fn parse_scoped_block(tokens: &mut TokenIterator) -> Result<ScopedBlock> {
                 break;
             }
 
-            _ => vec.push(AstNode::Expr(*parse_expr(tokens)?)),
+            _ => vec.push(AstNode::Expr(parse_expr(tokens)?)),
         };
     }
 
