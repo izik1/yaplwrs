@@ -34,7 +34,7 @@ mod tests {
         fn suffixed_number(ref num in "[0-9][0-9_]*", ref suffix in "[A-Za-z][A-Za-z_]*") {
             assert_eq!(
                 Lexer::new(&format!("{}{}", num, suffix)).unwrap().lex_all().unwrap(),
-                vec![Token::new(Span::new(0, num.len() + suffix.len()), TokenType::Integer(str::replace(num, "_", ""), suffix.to_string()))]
+                vec![Token::new(Span::new(0, num.len() + suffix.len()), TokenType::Integer(str::replace(num, "_", ""), Some(suffix.to_string())))]
              );
         }
     }
@@ -158,9 +158,9 @@ impl<'a> Lexer<'a> {
         }
 
         let suffix = if self.pos > num_pos {
-            self.input[num_pos..self.pos].to_string()
+            Some(self.input[num_pos..self.pos].to_string())
         } else {
-            "i32".to_string()
+            None
         };
 
         Token::new(

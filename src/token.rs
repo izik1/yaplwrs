@@ -35,7 +35,7 @@ impl Token {
 pub enum TokenType {
     Grammar(Grammar),
     Identifier(String),
-    Integer(String, String),
+    Integer(String, Option<String>),
     Keyword(Keyword),
 }
 
@@ -44,7 +44,7 @@ impl fmt::Display for TokenType {
         match *self {
             TokenType::Grammar(ref g) => write!(f, "{}", g),
             TokenType::Identifier(ref id) => write!(f, "{}", id),
-            TokenType::Integer(ref i, ref ty) if ty != "i32" => write!(f, "{}_{}", i, ty),
+            TokenType::Integer(ref i, Some(ref ty)) if ty != "i32" => write!(f, "{}_{}", i, ty),
             TokenType::Integer(ref i, _) => write!(f, "{}", i),
             TokenType::Keyword(ref k) => write!(f, "{}", k),
         }

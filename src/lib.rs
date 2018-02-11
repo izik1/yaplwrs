@@ -46,8 +46,8 @@ mod tests {
             ])
         }
 
-        fn prim_i32(val: i32) -> Expr {
-            Expr::Primary(Primary::Integer(val.to_string(), "i32".to_string()))
+        fn prim_int(val: i32) -> Expr {
+            Expr::Primary(Primary::Integer(val.to_string(), None))
         }
 
         fn identifier(id: &str) -> Identifier {
@@ -93,18 +93,18 @@ mod tests {
                         Box::new(Expr::Primary(Primary::Identifier(identifier("q")))),
                         Box::new(Expr::Primary(Primary::If(If(
                             Box::new(Expr::Primary(Primary::Identifier(identifier("a")))),
-                            ScopedBlock(vec![AstNode::Expr(prim_i32(1))]),
+                            ScopedBlock(vec![AstNode::Expr(prim_int(1))]),
                             vec![
                                 ElseIf(
                                     Box::new(Expr::Primary(Primary::Identifier(identifier("b")))),
-                                    ScopedBlock(vec![AstNode::Expr(prim_i32(2))]),
+                                    ScopedBlock(vec![AstNode::Expr(prim_int(2))]),
                                 ),
                                 ElseIf(
                                     Box::new(Expr::Primary(Primary::Identifier(identifier("c")))),
-                                    ScopedBlock(vec![AstNode::Expr(prim_i32(3))]),
+                                    ScopedBlock(vec![AstNode::Expr(prim_int(3))]),
                                 ),
                             ],
-                            Some(ScopedBlock(vec![AstNode::Expr(prim_i32(4))])),
+                            Some(ScopedBlock(vec![AstNode::Expr(prim_int(4))])),
                         )))),
                     )),
                 ]))
@@ -123,18 +123,18 @@ mod tests {
                             BinOperator::BinSub,
                             Box::new(Expr::Binary(
                                 BinOperator::BinAdd,
-                                Box::new(prim_i32(10)),
+                                Box::new(prim_int(10)),
                                 Box::new(Expr::Binary(
                                     BinOperator::BinDiv,
                                     Box::new(Expr::Binary(
                                         BinOperator::BinMul,
-                                        Box::new(prim_i32(4)),
-                                        Box::new(prim_i32(5)),
+                                        Box::new(prim_int(4)),
+                                        Box::new(prim_int(5)),
                                     )),
-                                    Box::new(prim_i32(2)),
+                                    Box::new(prim_int(2)),
                                 )),
                             )),
-                            Box::new(prim_i32(1)),
+                            Box::new(prim_int(1)),
                         )),
                     ]),
                 )

@@ -53,7 +53,7 @@ pub struct ElseIf(pub Box<Expr>, pub ScopedBlock);
 #[derive(Debug, Eq, PartialEq)]
 pub enum Primary {
     If(If),
-    Integer(String, String),
+    Integer(String, Option<String>),
     Identifier(Identifier),
     FunctionCall(Identifier, Vec<Expr>),
 }
