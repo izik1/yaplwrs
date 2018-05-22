@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/izik1/yaplwrs.svg?branch=master)](https://travis-ci.org/izik1/yaplwrs)[![codecov](https://codecov.io/gh/izik1/yaplwrs/branch/master/graph/badge.svg)](https://codecov.io/gh/izik1/yaplwrs)
+[![Build Status](https://travis-ci.org/izik1/yaplwrs.svg?branch=master)](https://travis-ci.org/izik1/yaplwrs)[![codecov](https://codecov.io/gh/izik1/yaplwrs/branch/master/graph/badge.svg)](https://codecov.io/gh/izik1/yaplwrs) (codecov is currently broken)
 
 A language written for the sake of research, not really doing that much yet.
 ## License
