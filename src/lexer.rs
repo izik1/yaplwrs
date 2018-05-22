@@ -17,7 +17,7 @@ mod tests {
     proptest! {
         #[test]
         fn assert_no_panics(ref s in ".*") {
-            let _ = do catch { Lexer::new(s)?.lex_all() };
+            let _: Result<_> = do catch { Lexer::new(s)?.lex_all() };
         }
 
         #[test]
