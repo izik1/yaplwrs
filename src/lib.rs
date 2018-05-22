@@ -7,12 +7,12 @@ extern crate maplit;
 #[macro_use]
 extern crate proptest;
 
-pub mod error;
-pub mod token;
-pub mod util;
 mod ast;
+pub mod error;
 mod lexer;
 mod parser;
+pub mod token;
+pub mod util;
 
 pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
     Ok(lexer::Lexer::new(string)?.lex_all()?)
@@ -38,12 +38,10 @@ mod tests {
         }
 
         fn foo_no_args(body: ScopedBlock) -> AstNode {
-            AstNode::Mod(vec![
-                AstNode::Function(Function::new(
-                    FunctionHeader::new(identifier("foo"), vec![], None),
-                    body,
-                )),
-            ])
+            AstNode::Mod(vec![AstNode::Function(Function::new(
+                FunctionHeader::new(identifier("foo"), vec![], None),
+                body,
+            ))])
         }
 
         fn prim_int(val: i32) -> Expr {
@@ -63,15 +61,13 @@ mod tests {
         fn fn_call() {
             run_test_inside_fn(
                 "foo(a, b)",
-                ScopedBlock(vec![
-                    AstNode::Expr(Expr::Primary(Primary::FunctionCall(
-                        identifier("foo"),
-                        vec![
-                            Expr::Primary(Primary::Identifier(identifier("a"))),
-                            Expr::Primary(Primary::Identifier(identifier("b"))),
-                        ],
-                    ))),
-                ]),
+                ScopedBlock(vec![AstNode::Expr(Expr::Primary(Primary::FunctionCall(
+                    identifier("foo"),
+                    vec![
+                        Expr::Primary(Primary::Identifier(identifier("a"))),
+                        Expr::Primary(Primary::Identifier(identifier("b"))),
+                    ],
+                )))]),
             )
         }
 
@@ -87,27 +83,25 @@ mod tests {
         fn if_elseif_else() {
             assert_eq!(
                 parse("fn foo() { q + if a {1} else if b {2} else if c {3} else {4} }").unwrap(),
-                foo_no_args(ScopedBlock(vec![
-                    AstNode::Expr(Expr::Binary(
-                        BinOperator::BinAdd,
-                        box Expr::Primary(Primary::Identifier(identifier("q"))),
-                        box Expr::Primary(Primary::If(If(
-                            box (Expr::Primary(Primary::Identifier(identifier("a")))),
-                            ScopedBlock(vec![AstNode::Expr(prim_int(1))]),
-                            vec![
-                                ElseIf(
-                                    box Expr::Primary(Primary::Identifier(identifier("b"))),
-                                    ScopedBlock(vec![AstNode::Expr(prim_int(2))]),
-                                ),
-                                ElseIf(
-                                    box Expr::Primary(Primary::Identifier(identifier("c"))),
-                                    ScopedBlock(vec![AstNode::Expr(prim_int(3))]),
-                                ),
-                            ],
-                            Some(ScopedBlock(vec![AstNode::Expr(prim_int(4))])),
-                        ))),
-                    )),
-                ]))
+                foo_no_args(ScopedBlock(vec![AstNode::Expr(Expr::Binary(
+                    BinOperator::BinAdd,
+                    box Expr::Primary(Primary::Identifier(identifier("q"))),
+                    box Expr::Primary(Primary::If(If(
+                        box (Expr::Primary(Primary::Identifier(identifier("a")))),
+                        ScopedBlock(vec![AstNode::Expr(prim_int(1))]),
+                        vec![
+                            ElseIf(
+                                box Expr::Primary(Primary::Identifier(identifier("b"))),
+                                ScopedBlock(vec![AstNode::Expr(prim_int(2))]),
+                            ),
+                            ElseIf(
+                                box Expr::Primary(Primary::Identifier(identifier("c"))),
+                                ScopedBlock(vec![AstNode::Expr(prim_int(3))]),
+                            ),
+                        ],
+                        Some(ScopedBlock(vec![AstNode::Expr(prim_int(4))])),
+                    ))),
+                ))]))
             )
         }
 
@@ -118,25 +112,23 @@ mod tests {
             fn binary() {
                 run_test_inside_fn(
                     "10 + 4 * 5 / 2 - 1",
-                    ScopedBlock(vec![
-                        AstNode::Expr(Expr::Binary(
-                            BinOperator::BinSub,
+                    ScopedBlock(vec![AstNode::Expr(Expr::Binary(
+                        BinOperator::BinSub,
+                        box Expr::Binary(
+                            BinOperator::BinAdd,
+                            box prim_int(10),
                             box Expr::Binary(
-                                BinOperator::BinAdd,
-                                box prim_int(10),
+                                BinOperator::BinDiv,
                                 box Expr::Binary(
-                                    BinOperator::BinDiv,
-                                    box Expr::Binary(
-                                        BinOperator::BinMul,
-                                        box prim_int(4),
-                                        box prim_int(5),
-                                    ),
-                                    box prim_int(2),
+                                    BinOperator::BinMul,
+                                    box prim_int(4),
+                                    box prim_int(5),
                                 ),
+                                box prim_int(2),
                             ),
-                            box prim_int(1),
-                        )),
-                    ]),
+                        ),
+                        box prim_int(1),
+                    ))]),
                 )
             }
 
@@ -144,19 +136,17 @@ mod tests {
             fn unary_minus() {
                 run_test_inside_fn(
                     "-a --b",
-                    ScopedBlock(vec![
-                        AstNode::Expr(Expr::Binary(
-                            BinOperator::BinSub,
-                            box Expr::Unary(
-                                UnaryOperator::UnNeg,
-                                box Expr::Primary(Primary::Identifier(identifier("a"))),
-                            ),
-                            box Expr::Unary(
-                                UnaryOperator::UnNeg,
-                                box Expr::Primary(Primary::Identifier(identifier("b"))),
-                            ),
-                        )),
-                    ]),
+                    ScopedBlock(vec![AstNode::Expr(Expr::Binary(
+                        BinOperator::BinSub,
+                        box Expr::Unary(
+                            UnaryOperator::UnNeg,
+                            box Expr::Primary(Primary::Identifier(identifier("a"))),
+                        ),
+                        box Expr::Unary(
+                            UnaryOperator::UnNeg,
+                            box Expr::Primary(Primary::Identifier(identifier("b"))),
+                        ),
+                    ))]),
                 )
             }
 
@@ -185,12 +175,10 @@ mod tests {
             fn with_return() {
                 assert_eq!(
                     parse("fn foo() -> bar {}").unwrap(),
-                    AstNode::Mod(vec![
-                        AstNode::Function(Function::new(
-                            FunctionHeader::new(identifier("foo"), vec![], Some(identifier("bar"))),
-                            ScopedBlock(vec![]),
-                        )),
-                    ])
+                    AstNode::Mod(vec![AstNode::Function(Function::new(
+                        FunctionHeader::new(identifier("foo"), vec![], Some(identifier("bar"))),
+                        ScopedBlock(vec![]),
+                    ))])
                 )
             }
 
@@ -198,19 +186,17 @@ mod tests {
             fn with_args() {
                 assert_eq!(
                     parse("fn foo(q: bar, z: u32) {}").unwrap(),
-                    AstNode::Mod(vec![
-                        AstNode::Function(Function::new(
-                            FunctionHeader::new(
-                                identifier("foo"),
-                                vec![
-                                    (identifier("q"), identifier("bar")),
-                                    (identifier("z"), identifier("u32")),
-                                ],
-                                None,
-                            ),
-                            ScopedBlock(vec![]),
-                        )),
-                    ])
+                    AstNode::Mod(vec![AstNode::Function(Function::new(
+                        FunctionHeader::new(
+                            identifier("foo"),
+                            vec![
+                                (identifier("q"), identifier("bar")),
+                                (identifier("z"), identifier("u32")),
+                            ],
+                            None,
+                        ),
+                        ScopedBlock(vec![]),
+                    ))])
                 )
             }
 
@@ -219,19 +205,17 @@ mod tests {
             fn args_without_separation() {
                 assert_ne!(
                     parse("fn foo(q: bar z: u32) {}").unwrap(),
-                    AstNode::Mod(vec![
-                        AstNode::Function(Function::new(
-                            FunctionHeader::new(
-                                identifier("foo"),
-                                vec![
-                                    (identifier("q"), identifier("bar")),
-                                    (identifier("z"), identifier("u32")),
-                                ],
-                                None,
-                            ),
-                            ScopedBlock(vec![]),
-                        )),
-                    ])
+                    AstNode::Mod(vec![AstNode::Function(Function::new(
+                        FunctionHeader::new(
+                            identifier("foo"),
+                            vec![
+                                (identifier("q"), identifier("bar")),
+                                (identifier("z"), identifier("u32")),
+                            ],
+                            None,
+                        ),
+                        ScopedBlock(vec![]),
+                    ))])
                 )
             }
         }

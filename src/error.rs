@@ -1,7 +1,6 @@
+use super::{lexer, parser};
 use std::convert;
 use util::Span;
-use super::lexer;
-use super::parser;
 
 #[derive(Debug, Clone)]
 pub struct SpanError {

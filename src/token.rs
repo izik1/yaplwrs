@@ -1,7 +1,6 @@
-use std::fmt;
 use super::util;
-use error;
-use error::SpanError;
+use error::{self, SpanError};
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {

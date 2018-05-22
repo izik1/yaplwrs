@@ -1,6 +1,6 @@
-use util::Span;
-use token::*;
 use ast::*;
+use token::*;
+use util::Span;
 
 #[derive(Debug, Clone)]
 pub enum Error {

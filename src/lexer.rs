@@ -1,5 +1,4 @@
-use std::iter::Peekable;
-use std::str::Chars;
+use std::{iter::Peekable, str::Chars};
 use token::*;
 use util::Span;
 
@@ -62,9 +61,10 @@ mod tests {
                 .unwrap()
                 .lex_all()
                 .unwrap(),
-            vec![
-                Token::new(Span::new(0, 1), TokenType::Grammar(Grammar::Colon)),
-            ]
+            vec![Token::new(
+                Span::new(0, 1),
+                TokenType::Grammar(Grammar::Colon),
+            )]
         )
     }
 
@@ -72,9 +72,10 @@ mod tests {
     fn grammar_at_end_of_input() {
         assert_eq!(
             Lexer::new("(").unwrap().lex_all().unwrap(),
-            vec![
-                Token::new(Span::new(0, 1), TokenType::Grammar(Grammar::OpenParen)),
-            ]
+            vec![Token::new(
+                Span::new(0, 1),
+                TokenType::Grammar(Grammar::OpenParen),
+            )]
         )
     }
 
@@ -82,9 +83,10 @@ mod tests {
     fn op_longest_match() {
         assert_eq!(
             Lexer::new("->").unwrap().lex_all().unwrap(),
-            vec![
-                Token::new(Span::new(0, 2), TokenType::Grammar(Grammar::Arrow)),
-            ]
+            vec![Token::new(
+                Span::new(0, 2),
+                TokenType::Grammar(Grammar::Arrow),
+            )]
         )
     }
 }
@@ -213,7 +215,8 @@ impl<'a> Lexer<'a> {
                 ];
 
         while let Some(_) = self.chars.peek() {
-            if ops.keys()
+            if ops
+                .keys()
                 .any(|key| key.contains(&self.input[start..pos + 1]))
             {
                 pos += 1;
