@@ -4,7 +4,7 @@ use std::fmt;
 pub struct Ident(pub String);
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ScopedBlock(pub Vec<AstNode>);
+pub struct ScopedBlock(pub Box<[AstNode]>);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Function {
@@ -21,14 +21,14 @@ impl Function {
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionHeader {
     pub identifier: Ident,
-    pub args: Vec<(Ident, Ident)>,
+    pub args: Box<[(Ident, Ident)]>,
     pub ret_type: Option<Ident>,
 }
 
 impl FunctionHeader {
     pub fn new(
         identifier: Ident,
-        args: Vec<(Ident, Ident)>,
+        args: Box<[(Ident, Ident)]>,
         ret_type: Option<Ident>,
     ) -> FunctionHeader {
         FunctionHeader {
@@ -43,7 +43,7 @@ impl FunctionHeader {
 pub struct If(
     pub Box<Expr>,
     pub ScopedBlock,
-    pub Vec<ElseIf>,
+    pub Box<[ElseIf]>,
     pub Option<ScopedBlock>,
 );
 
@@ -55,7 +55,7 @@ pub enum Primary {
     If(If),
     Integer(String, Option<String>),
     Ident(Ident),
-    FunctionCall(Ident, Vec<Expr>),
+    FunctionCall(Ident, Box<[Expr]>),
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -157,7 +157,7 @@ pub enum Expr {
 #[derive(Debug, Eq, PartialEq)]
 pub enum AstNode {
     Token(::token::Token),
-    Mod(Vec<AstNode>),
+    Mod(Box<[AstNode]>),
     Function(Function),
     ScopedBlock(ScopedBlock),
     Expr(Expr),

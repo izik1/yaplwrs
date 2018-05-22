@@ -38,8 +38,8 @@ mod tests {
         }
 
         fn foo_no_args(body: ScopedBlock) -> AstNode {
-            AstNode::Mod(vec![AstNode::Function(Function::new(
-                FunctionHeader::new(ident("foo"), vec![], None),
+            AstNode::Mod(box [AstNode::Function(Function::new(
+                FunctionHeader::new(ident("foo"), box [], None),
                 body,
             ))])
         }
@@ -54,16 +54,16 @@ mod tests {
 
         #[test]
         fn empty() {
-            assert_eq!(parse("").unwrap(), ast::AstNode::Mod(vec![]))
+            assert_eq!(parse("").unwrap(), ast::AstNode::Mod(box []))
         }
 
         #[test]
         fn fn_call() {
             run_test_inside_fn(
                 "foo(a, b)",
-                ScopedBlock(vec![AstNode::Expr(Expr::Primary(Primary::FunctionCall(
+                ScopedBlock(box [AstNode::Expr(Expr::Primary(Primary::FunctionCall(
                     ident("foo"),
-                    vec![
+                    box [
                         Expr::Primary(Primary::Ident(ident("a"))),
                         Expr::Primary(Primary::Ident(ident("b"))),
                     ],
@@ -75,7 +75,7 @@ mod tests {
         fn scope() {
             run_test_inside_fn(
                 "{}",
-                ScopedBlock(vec![AstNode::ScopedBlock(ScopedBlock(vec![]))]),
+                ScopedBlock(box [AstNode::ScopedBlock(ScopedBlock(box []))]),
             )
         }
 
@@ -83,23 +83,23 @@ mod tests {
         fn if_elseif_else() {
             assert_eq!(
                 parse("fn foo() { q + if a {1} else if b {2} else if c {3} else {4} }").unwrap(),
-                foo_no_args(ScopedBlock(vec![AstNode::Expr(Expr::Binary(
+                foo_no_args(ScopedBlock(box [AstNode::Expr(Expr::Binary(
                     BinOperator::BinAdd,
                     box Expr::Primary(Primary::Ident(ident("q"))),
                     box Expr::Primary(Primary::If(If(
                         box (Expr::Primary(Primary::Ident(ident("a")))),
-                        ScopedBlock(vec![AstNode::Expr(prim_int(1))]),
-                        vec![
+                        ScopedBlock(box [AstNode::Expr(prim_int(1))]),
+                        box [
                             ElseIf(
                                 box Expr::Primary(Primary::Ident(ident("b"))),
-                                ScopedBlock(vec![AstNode::Expr(prim_int(2))]),
+                                ScopedBlock(box [AstNode::Expr(prim_int(2))]),
                             ),
                             ElseIf(
                                 box Expr::Primary(Primary::Ident(ident("c"))),
-                                ScopedBlock(vec![AstNode::Expr(prim_int(3))]),
+                                ScopedBlock(box [AstNode::Expr(prim_int(3))]),
                             ),
                         ],
-                        Some(ScopedBlock(vec![AstNode::Expr(prim_int(4))])),
+                        Some(ScopedBlock(box [AstNode::Expr(prim_int(4))])),
                     ))),
                 ))]))
             )
@@ -112,7 +112,7 @@ mod tests {
             fn binary() {
                 run_test_inside_fn(
                     "10 + 4 * 5 / 2 - 1",
-                    ScopedBlock(vec![AstNode::Expr(Expr::Binary(
+                    ScopedBlock(box [AstNode::Expr(Expr::Binary(
                         BinOperator::BinSub,
                         box Expr::Binary(
                             BinOperator::BinAdd,
@@ -136,7 +136,7 @@ mod tests {
             fn unary_minus() {
                 run_test_inside_fn(
                     "-a --b",
-                    ScopedBlock(vec![AstNode::Expr(Expr::Binary(
+                    ScopedBlock(box [AstNode::Expr(Expr::Binary(
                         BinOperator::BinSub,
                         box Expr::Unary(
                             UnaryOperator::UnNeg,
@@ -161,10 +161,10 @@ mod tests {
                 println!("fn {}() -> {{}}", id);
                      prop_assert_eq!(
                         parse(&format!("fn {}() {{}}", id)).unwrap(),
-                        AstNode::Mod(vec![
+                        AstNode::Mod(box [
                             AstNode::Function(Function::new(
-                                FunctionHeader::new(ident(id), vec![], None),
-                                ScopedBlock(vec![]),
+                                FunctionHeader::new(ident(id), box [], None),
+                                ScopedBlock(box []),
                             ))
                         ])
                     )
@@ -175,9 +175,9 @@ mod tests {
             fn with_return() {
                 assert_eq!(
                     parse("fn foo() -> bar {}").unwrap(),
-                    AstNode::Mod(vec![AstNode::Function(Function::new(
-                        FunctionHeader::new(ident("foo"), vec![], Some(ident("bar"))),
-                        ScopedBlock(vec![]),
+                    AstNode::Mod(box [AstNode::Function(Function::new(
+                        FunctionHeader::new(ident("foo"), box [], Some(ident("bar"))),
+                        ScopedBlock(box []),
                     ))])
                 )
             }
@@ -186,13 +186,13 @@ mod tests {
             fn with_args() {
                 assert_eq!(
                     parse("fn foo(q: bar, z: u32) {}").unwrap(),
-                    AstNode::Mod(vec![AstNode::Function(Function::new(
+                    AstNode::Mod(box [AstNode::Function(Function::new(
                         FunctionHeader::new(
                             ident("foo"),
-                            vec![(ident("q"), ident("bar")), (ident("z"), ident("u32"))],
+                            box [(ident("q"), ident("bar")), (ident("z"), ident("u32"))],
                             None,
                         ),
-                        ScopedBlock(vec![]),
+                        ScopedBlock(box []),
                     ))])
                 )
             }
@@ -202,13 +202,13 @@ mod tests {
             fn args_without_separation() {
                 assert_ne!(
                     parse("fn foo(q: bar z: u32) {}").unwrap(),
-                    AstNode::Mod(vec![AstNode::Function(Function::new(
+                    AstNode::Mod(box [AstNode::Function(Function::new(
                         FunctionHeader::new(
                             ident("foo"),
-                            vec![(ident("q"), ident("bar")), (ident("z"), ident("u32"))],
+                            box [(ident("q"), ident("bar")), (ident("z"), ident("u32"))],
                             None,
                         ),
-                        ScopedBlock(vec![]),
+                        ScopedBlock(box []),
                     ))])
                 )
             }

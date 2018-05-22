@@ -113,7 +113,7 @@ fn parse_if(tokens: &mut TokenIterator) -> Result<If> {
         }
     }
 
-    Ok(If(box cond, block, elseifs, block_else))
+    Ok(If(box cond, block, elseifs.into_boxed_slice(), block_else))
 }
 
 fn parse_var_with_type(tokens: &mut TokenIterator) -> Result<(Ident, Ident)> {
@@ -137,7 +137,7 @@ fn parse_call(tokens: &mut TokenIterator, id: Ident) -> Result<Primary> {
         }
     }
 
-    Ok(Primary::FunctionCall(id, args))
+    Ok(Primary::FunctionCall(id, args.into_boxed_slice()))
 }
 
 fn parse_primary(tokens: &mut TokenIterator) -> Result<Primary> {
@@ -214,7 +214,7 @@ fn parse_scoped_block(tokens: &mut TokenIterator) -> Result<ScopedBlock> {
         };
     }
 
-    Ok(ScopedBlock(vec))
+    Ok(ScopedBlock(vec.into_boxed_slice()))
 }
 
 fn next_ident(tokens: &mut TokenIterator) -> Result<Ident> {
@@ -233,6 +233,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> Result<AstNode> {
     tokens.move_required(&TokenType::Keyword(Keyword::Function))?;
     let name = next_ident(tokens)?;
     tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
+
     let mut args: Vec<(Ident, Ident)> = Vec::new();
 
     if let TokenType::Ident(_) = tokens.peek()?.token_type {
@@ -258,7 +259,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> Result<AstNode> {
     };
 
     Ok(AstNode::Function(Function::new(
-        FunctionHeader::new(name, args, return_type),
+        FunctionHeader::new(name, args.into_boxed_slice(), return_type),
         parse_scoped_block(tokens)?,
     )))
 }
@@ -273,5 +274,5 @@ fn parse_mod(mut tokens: TokenIterator) -> Result<AstNode> {
         };
     }
 
-    Ok(AstNode::Mod(vec))
+    Ok(AstNode::Mod(vec.into_boxed_slice()))
 }
