@@ -116,13 +116,13 @@ fn parse_if(tokens: &mut TokenIterator) -> Result<If> {
     Ok(If(box cond, block, elseifs, block_else))
 }
 
-fn parse_var_with_type(tokens: &mut TokenIterator) -> Result<(Identifier, Identifier)> {
-    let name = next_identifier(tokens)?;
+fn parse_var_with_type(tokens: &mut TokenIterator) -> Result<(Ident, Ident)> {
+    let name = next_ident(tokens)?;
     tokens.move_required(&TokenType::Grammar(Grammar::Colon))?;
-    Ok((name, next_identifier(tokens)?))
+    Ok((name, next_ident(tokens)?))
 }
 
-fn parse_call(tokens: &mut TokenIterator, id: Identifier) -> Result<Primary> {
+fn parse_call(tokens: &mut TokenIterator, id: Ident) -> Result<Primary> {
     tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
     let mut args = vec![];
     loop {
@@ -143,12 +143,12 @@ fn parse_call(tokens: &mut TokenIterator, id: Identifier) -> Result<Primary> {
 fn parse_primary(tokens: &mut TokenIterator) -> Result<Primary> {
     let token = tokens.next()?;
     match token.token_type {
-        TokenType::Identifier(ref id) => {
-            let id = Identifier(id.clone());
+        TokenType::Ident(ref id) => {
+            let id = Ident(id.clone());
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::OpenParen) {
                 parse_call(tokens, id)
             } else {
-                Ok(Primary::Identifier(id))
+                Ok(Primary::Ident(id))
             }
         }
 
@@ -217,13 +217,13 @@ fn parse_scoped_block(tokens: &mut TokenIterator) -> Result<ScopedBlock> {
     Ok(ScopedBlock(vec))
 }
 
-fn next_identifier(tokens: &mut TokenIterator) -> Result<Identifier> {
+fn next_ident(tokens: &mut TokenIterator) -> Result<Ident> {
     let tok = tokens.next()?;
     match tok.token_type {
-        TokenType::Identifier(ref s) => Ok(Identifier(s.clone())),
+        TokenType::Ident(ref s) => Ok(Ident(s.clone())),
         _ => Err(Error::IncorrectToken {
             span: tok.span,
-            expected: TokenType::Identifier("".to_string()),
+            expected: TokenType::Ident("".to_string()),
             actual: tok.token_type.clone(),
         }),
     }
@@ -231,11 +231,11 @@ fn next_identifier(tokens: &mut TokenIterator) -> Result<Identifier> {
 
 fn parse_fn(tokens: &mut TokenIterator) -> Result<AstNode> {
     tokens.move_required(&TokenType::Keyword(Keyword::Function))?;
-    let name = next_identifier(tokens)?;
+    let name = next_ident(tokens)?;
     tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
-    let mut args: Vec<(Identifier, Identifier)> = Vec::new();
+    let mut args: Vec<(Ident, Ident)> = Vec::new();
 
-    if let TokenType::Identifier(_) = tokens.peek()?.token_type {
+    if let TokenType::Ident(_) = tokens.peek()?.token_type {
         loop {
             args.push(parse_var_with_type(tokens)?);
             if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
@@ -251,7 +251,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> Result<AstNode> {
     let return_type = match tokens.peek()?.token_type {
         TokenType::Grammar(Grammar::Arrow) => {
             tokens.move_next().unwrap();
-            Some(next_identifier(tokens)?)
+            Some(next_ident(tokens)?)
         }
 
         _ => None,

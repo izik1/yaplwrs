@@ -20,7 +20,7 @@ impl Token {
     pub fn matches(&self, expected: &TokenType) -> bool {
         match (&self.token_type, expected) {
             (&TokenType::Integer(_, _), &TokenType::Integer(_, _))
-            | (&TokenType::Identifier(_), &TokenType::Identifier(_)) => true,
+            | (&TokenType::Ident(_), &TokenType::Ident(_)) => true,
             _ => &self.token_type == expected,
         }
     }
@@ -33,7 +33,7 @@ impl Token {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     Grammar(Grammar),
-    Identifier(String),
+    Ident(String),
     Integer(String, Option<String>),
     Keyword(Keyword),
 }
@@ -42,7 +42,7 @@ impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             TokenType::Grammar(ref g) => write!(f, "{}", g),
-            TokenType::Identifier(ref id) => write!(f, "{}", id),
+            TokenType::Ident(ref id) => write!(f, "{}", id),
             TokenType::Integer(ref i, Some(ref ty)) if ty != "i32" => write!(f, "{}_{}", i, ty),
             TokenType::Integer(ref i, _) => write!(f, "{}", i),
             TokenType::Keyword(ref k) => write!(f, "{}", k),

@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct Identifier(pub String);
+pub struct Ident(pub String);
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ScopedBlock(pub Vec<AstNode>);
@@ -20,16 +20,16 @@ impl Function {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionHeader {
-    pub identifier: Identifier,
-    pub args: Vec<(Identifier, Identifier)>,
-    pub ret_type: Option<Identifier>,
+    pub identifier: Ident,
+    pub args: Vec<(Ident, Ident)>,
+    pub ret_type: Option<Ident>,
 }
 
 impl FunctionHeader {
     pub fn new(
-        identifier: Identifier,
-        args: Vec<(Identifier, Identifier)>,
-        ret_type: Option<Identifier>,
+        identifier: Ident,
+        args: Vec<(Ident, Ident)>,
+        ret_type: Option<Ident>,
     ) -> FunctionHeader {
         FunctionHeader {
             identifier,
@@ -54,8 +54,8 @@ pub struct ElseIf(pub Box<Expr>, pub ScopedBlock);
 pub enum Primary {
     If(If),
     Integer(String, Option<String>),
-    Identifier(Identifier),
-    FunctionCall(Identifier, Vec<Expr>),
+    Ident(Ident),
+    FunctionCall(Ident, Vec<Expr>),
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

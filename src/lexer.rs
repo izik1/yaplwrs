@@ -21,10 +21,10 @@ mod tests {
         }
 
         #[test]
-        fn identifier(ref s in "[A-Za-z_][A-Za-z_0-9]*") {
+        fn ident(ref s in "[A-Za-z_][A-Za-z_0-9]*") {
             assert_eq!(
                 Lexer::new(s).unwrap().lex_all().unwrap(),
-                vec![Token::new(Span::new(0, s.len()), TokenType::Identifier(s.to_string()))]
+                vec![Token::new(Span::new(0, s.len()), TokenType::Ident(s.to_string()))]
              );
 
         }
@@ -48,8 +48,8 @@ mod tests {
         assert_eq!(
             Lexer::new("a A2").unwrap().lex_all().unwrap(),
             vec![
-                Token::new(Span::new(0, 1), TokenType::Identifier("a".to_string())),
-                Token::new(Span::new(2, 2), TokenType::Identifier("A2".to_string())),
+                Token::new(Span::new(0, 1), TokenType::Ident("a".to_string())),
+                Token::new(Span::new(2, 2), TokenType::Ident("A2".to_string())),
             ]
         )
     }
@@ -171,7 +171,7 @@ impl<'a> Lexer<'a> {
         )
     }
 
-    fn lex_identifier(&mut self) -> Token {
+    fn lex_ident(&mut self) -> Token {
         let start = self.pos;
 
         while let Some(ch) = self.chars.peek() {
@@ -190,7 +190,7 @@ impl<'a> Lexer<'a> {
                 "fn" => TokenType::Keyword(Keyword::Function),
                 "if" => TokenType::Keyword(Keyword::If),
                 "else" => TokenType::Keyword(Keyword::Else),
-                id => TokenType::Identifier(id.to_string()),
+                id => TokenType::Ident(id.to_string()),
             },
         )
     }
@@ -242,7 +242,7 @@ impl<'a> Lexer<'a> {
         Ok(if let Some(lookahead) = self.chars.peek() {
             Some(match *lookahead {
                 '0'...'9' => self.lex_number(),
-                'A'...'Z' | 'a'...'z' | '_' => self.lex_identifier(),
+                'A'...'Z' | 'a'...'z' | '_' => self.lex_ident(),
                 _ => self.lex_operator()?,
             })
         } else {
