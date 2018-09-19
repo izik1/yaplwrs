@@ -1,4 +1,4 @@
-#![feature(nll, catch_expr, box_syntax)]
+#![feature(nll, box_syntax)]
 
 #[macro_use]
 extern crate maplit;
@@ -158,6 +158,7 @@ mod tests {
             proptest! {
                 #[test]
                 fn empty_fn(ref id in "[A-Za-z_][A-Za-z0-9]*") {
+                prop_assume!(!lexer::is_keyword(id));
                 println!("fn {}() -> {{}}", id);
                      prop_assert_eq!(
                         parse(&format!("fn {}() {{}}", id)).unwrap(),
@@ -169,6 +170,12 @@ mod tests {
                         ])
                     )
                 }
+            }
+
+            #[test]
+            #[should_panic]
+            fn empty_fn_keyword_as_name() {
+                parse("fn if() {}").unwrap();
             }
 
             #[test]
@@ -200,17 +207,7 @@ mod tests {
             #[test]
             #[should_panic]
             fn args_without_separation() {
-                assert_ne!(
-                    parse("fn foo(q: bar z: u32) {}").unwrap(),
-                    AstNode::Mod(box [AstNode::Function(Function::new(
-                        FunctionHeader::new(
-                            ident("foo"),
-                            box [(ident("q"), ident("bar")), (ident("z"), ident("u32"))],
-                            None,
-                        ),
-                        ScopedBlock(box []),
-                    ))])
-                )
+                parse("fn foo(q: bar z: u32) {}").unwrap();
             }
         }
     }

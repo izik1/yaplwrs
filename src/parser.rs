@@ -66,10 +66,6 @@ impl<'a> TokenIterator<'a> {
             Err(Error::OutOfTokens)
         }
     }
-
-    pub fn empty(&self) -> bool {
-        self.pos >= self.tokens.len()
-    }
 }
 
 pub fn parse(tokens: &[Token]) -> Result<AstNode> {
@@ -164,7 +160,7 @@ fn parse_expr(tokens: &mut TokenIterator) -> Result<Expr> {
 }
 
 fn parse_bin_expr(tokens: &mut TokenIterator, mut lhs: Expr, min_priority: usize) -> Result<Expr> {
-    fn precedence_compare(a: &BinOperator, b: &BinOperator) -> bool {
+    fn precedence_compare(a: BinOperator, b: BinOperator) -> bool {
         a.precedence() > b.precedence()
             || (a.precedence() == b.precedence() && (a.associativity() == Associativity::Right))
     }
@@ -181,7 +177,7 @@ fn parse_bin_expr(tokens: &mut TokenIterator, mut lhs: Expr, min_priority: usize
         lookahead = tokens.peek()?;
 
         while let Some(lookahead_op) = BinOperator::from_token_type(&lookahead.token_type) {
-            if !precedence_compare(&lookahead_op, &op) {
+            if !precedence_compare(lookahead_op, op) {
                 break;
             }
 
@@ -199,6 +195,7 @@ fn parse_scoped_block(tokens: &mut TokenIterator) -> Result<ScopedBlock> {
     tokens.move_required(&TokenType::Grammar(Grammar::OpenBrace))?;
 
     let mut vec: Vec<AstNode> = Vec::new();
+
     loop {
         match tokens.peek()?.token_type {
             TokenType::Grammar(Grammar::OpenBrace) => {
@@ -266,8 +263,7 @@ fn parse_fn(tokens: &mut TokenIterator) -> Result<AstNode> {
 
 fn parse_mod(mut tokens: TokenIterator) -> Result<AstNode> {
     let mut vec: Vec<AstNode> = Vec::new();
-    while !tokens.empty() {
-        let token = tokens.peek().unwrap();
+    while let Ok(token) = tokens.peek() {
         match token.token_type {
             TokenType::Keyword(Keyword::Function) => vec.push(parse_fn(&mut tokens)?),
             _ => return Err(Error::UnexpectedToken(token.span, token.token_type.clone())),

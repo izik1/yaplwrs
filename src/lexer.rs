@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::Chars};
+use std::{collections::HashMap, iter::Peekable, str::Chars};
 use token::*;
 use util::Span;
 
@@ -17,7 +17,7 @@ mod tests {
     proptest! {
         #[test]
         fn assert_no_panics(ref s in ".*") {
-            let _: Result<_> = do catch { Lexer::new(s)?.lex_all() };
+            let _ = Lexer::new(s).map(Lexer::lex_all);
         }
 
         #[test]
@@ -91,6 +91,19 @@ mod tests {
     }
 }
 
+pub(crate) fn is_keyword(s: &str) -> bool {
+    keyword_map().contains_key(s)
+}
+
+fn keyword_map() -> HashMap<&'static str, TokenType> {
+    hashmap! [
+        "const" => TokenType::Keyword(Keyword::Const),
+        "fn" => TokenType::Keyword(Keyword::Function),
+        "if" => TokenType::Keyword(Keyword::If),
+        "else" => TokenType::Keyword(Keyword::Else),
+    ]
+}
+
 pub struct Lexer<'a> {
     input: &'a str,
     chars: Box<Peekable<Chars<'a>>>,
@@ -119,14 +132,10 @@ impl<'a> Lexer<'a> {
         Ok(tokens)
     }
 
-    fn nom_whitespace(&mut self) {
-        while let Some(ch) = self.chars.peek() {
-            if ch.is_whitespace() {
-                self.chars.next();
-                self.pos += 1;
-            } else {
-                break;
-            }
+    fn skip_while<F: Fn(&char) -> bool>(&mut self, f: F) {
+        while self.chars.peek().map_or(false, &f) {
+            self.chars.next();
+            self.pos += 1;
         }
     }
 
@@ -150,14 +159,7 @@ impl<'a> Lexer<'a> {
 
         let num_pos = self.pos;
 
-        while let Some(ch) = self.chars.peek() {
-            if ch == &'_' || ch.is_alphanumeric() {
-                self.chars.next();
-                self.pos += 1;
-            } else {
-                break;
-            }
-        }
+        self.skip_while(|ch| ch == &'_' || ch.is_alphanumeric());
 
         let suffix = if self.pos > num_pos {
             Some(self.input[num_pos..self.pos].to_string())
@@ -174,14 +176,17 @@ impl<'a> Lexer<'a> {
     fn lex_ident(&mut self) -> Token {
         let start = self.pos;
 
-        while let Some(ch) = self.chars.peek() {
-            if ch == &'_' || ch.is_alphanumeric() {
-                self.chars.next();
-                self.pos += 1;
-            } else {
-                break;
-            }
-        }
+        self.skip_while(|ch| ch == &'_' || ch.is_alphanumeric());
+
+        let token_string = &self.input[start..self.pos];
+
+        Token::new(
+            Span::new(start, self.pos - start),
+            keyword_map()
+                .get(token_string)
+                .cloned()
+                .unwrap_or_else(|| TokenType::Ident(token_string.to_string())),
+        );
 
         Token::new(
             Span::new(start, self.pos - start),
@@ -200,25 +205,22 @@ impl<'a> Lexer<'a> {
         let mut pos = self.pos;
 
         let ops = hashmap![
-                    "->" => Grammar::Arrow,
-                    "(" => Grammar::OpenParen,
-                    ")" => Grammar::CloseParen,
-                    "{" => Grammar::OpenBrace,
-                    "}" => Grammar::CloseBrace,
-                    ";" => Grammar::SemiColon,
-                    ":" => Grammar::Colon,
-                    "," => Grammar::Comma,
-                    "+" => Grammar::Plus,
-                    "-" => Grammar::Minus,
-                    "*" => Grammar::Star,
-                    "/" => Grammar::Slash,
-                ];
+            "->" => Grammar::Arrow,
+            "(" => Grammar::OpenParen,
+            ")" => Grammar::CloseParen,
+            "{" => Grammar::OpenBrace,
+            "}" => Grammar::CloseBrace,
+            ";" => Grammar::SemiColon,
+            ":" => Grammar::Colon,
+            "," => Grammar::Comma,
+            "+" => Grammar::Plus,
+            "-" => Grammar::Minus,
+            "*" => Grammar::Star,
+            "/" => Grammar::Slash,
+        ];
 
         while let Some(_) = self.chars.peek() {
-            if ops
-                .keys()
-                .any(|key| key.contains(&self.input[start..pos + 1]))
-            {
+            if ops.keys().any(|key| key.contains(&self.input[start..=pos])) {
                 pos += 1;
                 self.chars.next();
             } else {
@@ -238,9 +240,9 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn lex(&mut self) -> Result<Option<Token>> {
-        self.nom_whitespace();
+        self.skip_while(|c| c.is_whitespace());
         Ok(if let Some(lookahead) = self.chars.peek() {
-            Some(match *lookahead {
+            Some(match lookahead {
                 '0'...'9' => self.lex_number(),
                 'A'...'Z' | 'a'...'z' | '_' => self.lex_ident(),
                 _ => self.lex_operator()?,

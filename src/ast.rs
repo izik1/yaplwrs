@@ -130,15 +130,15 @@ impl BinOperator {
         }
     }
 
-    pub fn precedence(&self) -> usize {
-        match *self {
+    pub fn precedence(self) -> usize {
+        match self {
             BinOperator::BinAdd | BinOperator::BinSub => 150,
             BinOperator::BinMul | BinOperator::BinDiv => 200,
         }
     }
 
-    pub fn associativity(&self) -> Associativity {
-        match *self {
+    pub fn associativity(self) -> Associativity {
+        match self {
             BinOperator::BinAdd
             | BinOperator::BinSub
             | BinOperator::BinMul
