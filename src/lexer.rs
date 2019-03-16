@@ -1,6 +1,6 @@
-use std::{collections::HashMap, iter::Peekable, str::Chars};
 use crate::token::*;
 use crate::util::Span;
+use std::{collections::HashMap, iter::Peekable, str::Chars};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -13,17 +13,18 @@ type Result<T> = ::std::result::Result<T, Error>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
 
     proptest! {
         #[test]
         fn assert_no_panics(ref s in ".*") {
-            let _ = Lexer::new(s).map(Lexer::lex_all);
+            let _ = Lexer::new(s).map(<Lexer as Itertools>::collect_vec);
         }
 
         #[test]
         fn ident(ref s in "[A-Za-z_][A-Za-z_0-9]*") {
             assert_eq!(
-                Lexer::new(s).unwrap().lex_all(),
+                Lexer::new(s).unwrap().collect_vec(),
                 vec![Token::new(Span::new(0, s.len()), TokenType::Ident(s.to_string()))]
              );
 
@@ -32,7 +33,7 @@ mod tests {
         #[test]
         fn suffixed_number(ref num in "[0-9][0-9_]*", ref suffix in "[A-Za-z][A-Za-z_]*") {
             assert_eq!(
-                Lexer::new(&format!("{}{}", num, suffix)).unwrap().lex_all(),
+                Lexer::new(&format!("{}{}", num, suffix)).unwrap().collect_vec(),
                 vec![Token::new(Span::new(0, num.len() + suffix.len()), TokenType::Integer(str::replace(num, "_", ""), Some(suffix.to_string())))]
              );
         }
@@ -40,13 +41,13 @@ mod tests {
 
     #[test]
     fn empty() {
-        assert_eq!(Lexer::new("").unwrap().lex_all(), vec![])
+        assert_eq!(Lexer::new("").unwrap().collect_vec(), vec![])
     }
 
     #[test]
     fn identifiers() {
         assert_eq!(
-            Lexer::new("a A2").unwrap().lex_all(),
+            Lexer::new("a A2").unwrap().collect_vec(),
             vec![
                 Token::new(Span::new(0, 1), TokenType::Ident("a".to_string())),
                 Token::new(Span::new(2, 2), TokenType::Ident("A2".to_string())),
@@ -59,7 +60,7 @@ mod tests {
         assert_eq!(
             Lexer::new(&format!("{}", TokenType::Grammar(Grammar::Colon)))
                 .unwrap()
-                .lex_all(),
+                .collect_vec(),
             vec![Token::new(
                 Span::new(0, 1),
                 TokenType::Grammar(Grammar::Colon),
@@ -72,7 +73,7 @@ mod tests {
         assert_eq!(
             Lexer::new(&format!("{}", TokenType::Err("%".to_string())))
                 .unwrap()
-                .lex_all(),
+                .collect_vec(),
             vec![Token::new(Span::new(0, 1), TokenType::Err("%".to_string())),]
         )
     }
@@ -80,7 +81,7 @@ mod tests {
     #[test]
     fn grammar_at_end_of_input() {
         assert_eq!(
-            Lexer::new("(").unwrap().lex_all(),
+            Lexer::new("(").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 1),
                 TokenType::Grammar(Grammar::OpenParen),
@@ -91,7 +92,7 @@ mod tests {
     #[test]
     fn op_longest_match() {
         assert_eq!(
-            Lexer::new("->").unwrap().lex_all(),
+            Lexer::new("->").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 2),
                 TokenType::Grammar(Grammar::Arrow),
@@ -147,15 +148,6 @@ impl<'a> Lexer<'a> {
                 pos: 0,
             })
         }
-    }
-
-    pub fn lex_all(mut self) -> Vec<Token> {
-        let mut tokens = Vec::new();
-        while let Some(t) = self.lex() {
-            tokens.push(t);
-        }
-
-        tokens
     }
 
     fn skip_while<F: Fn(&char) -> bool>(&mut self, f: F) {
@@ -276,7 +268,7 @@ impl<'a> Lexer<'a> {
         )
     }
 
-    pub fn lex(&mut self) -> Option<Token> {
+    fn lex(&mut self) -> Option<Token> {
         self.skip_while(|c| c.is_whitespace());
         if let Some(lookahead) = self.chars.peek() {
             Some(match lookahead {
@@ -293,5 +285,12 @@ impl<'a> Lexer<'a> {
         } else {
             None
         }
+    }
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Token;
+    fn next(&mut self) -> Option<Token> {
+        self.lex()
     }
 }

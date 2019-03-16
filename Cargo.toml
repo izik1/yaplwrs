@@ -11,3 +11,4 @@ path = "src/lib.rs"
 [dependencies]
 maplit = "1.0"
 proptest = "0.9"
+itertools = "0.8.0"

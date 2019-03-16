@@ -7,6 +7,8 @@ extern crate maplit;
 #[macro_use]
 extern crate proptest;
 
+use itertools::Itertools;
+
 mod ast;
 pub mod error;
 mod lexer;
@@ -15,11 +17,11 @@ pub mod token;
 pub mod util;
 
 pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
-    Ok(lexer::Lexer::new(string)?.lex_all())
+    Ok(lexer::Lexer::new(string)?.collect_vec())
 }
 
 pub fn parse(string: &str) -> Result<ast::AstNode, error::Error> {
-    Ok(parser::parse(&lex(string)?)?)
+    Ok(parser::parse(lexer::Lexer::new(string)?)?)
 }
 
 #[cfg(test)]
