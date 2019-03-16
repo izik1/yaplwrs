@@ -36,6 +36,7 @@ pub enum TokenType {
     Ident(String),
     Integer(String, Option<String>),
     Keyword(Keyword),
+    Err(String),
 }
 
 impl fmt::Display for TokenType {
@@ -46,6 +47,7 @@ impl fmt::Display for TokenType {
             TokenType::Integer(ref i, Some(ref ty)) if ty != "i32" => write!(f, "{}_{}", i, ty),
             TokenType::Integer(ref i, _) => write!(f, "{}", i),
             TokenType::Keyword(ref k) => write!(f, "{}", k),
+            TokenType::Err(ref s) => write!(f, "{}", s),
         }
     }
 }

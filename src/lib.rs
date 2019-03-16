@@ -15,7 +15,7 @@ pub mod token;
 pub mod util;
 
 pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
-    Ok(lexer::Lexer::new(string)?.lex_all()?)
+    Ok(lexer::Lexer::new(string)?.lex_all())
 }
 
 pub fn parse(string: &str) -> Result<ast::AstNode, error::Error> {
