@@ -2,6 +2,7 @@
 name = "yaplwrs"
 version = "0.1.0"
 authors = ["Chloe Ross <orangesnowfox@gmail.com>"]
+edition = "2018"
 
 [lib]
 name = "yaplwrs"
@@ -9,4 +10,4 @@ path = "src/lib.rs"
 
 [dependencies]
 maplit = "1.0"
-proptest = "0.8"
+proptest = "0.9"

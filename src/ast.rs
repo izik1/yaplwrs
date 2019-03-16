@@ -106,8 +106,8 @@ pub enum UnaryOperator {
 }
 
 impl UnaryOperator {
-    pub fn from_token_type(ty: &::token::TokenType) -> Option<Self> {
-        use token::{Grammar, TokenType};
+    pub fn from_token_type(ty: &crate::token::TokenType) -> Option<Self> {
+        use crate::token::{Grammar, TokenType};
         match *ty {
             TokenType::Grammar(Grammar::Minus) => Some(UnaryOperator::UnNeg),
             _ => None,
@@ -116,8 +116,8 @@ impl UnaryOperator {
 }
 
 impl BinOperator {
-    pub fn from_token_type(ty: &::token::TokenType) -> Option<Self> {
-        use token::{Grammar, TokenType};
+    pub fn from_token_type(ty: &crate::token::TokenType) -> Option<Self> {
+        use crate::token::{Grammar, TokenType};
         match *ty {
             TokenType::Grammar(ref g) => match *g {
                 Grammar::Plus => Some(BinOperator::BinAdd),
@@ -156,7 +156,7 @@ pub enum Expr {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum AstNode {
-    Token(::token::Token),
+    Token(crate::token::Token),
     Mod(Box<[AstNode]>),
     Function(Function),
     ScopedBlock(ScopedBlock),

@@ -28,7 +28,7 @@ mod tests {
 
     mod parse {
         use super::*;
-        use ast::*;
+        use crate::ast::*;
 
         fn run_test_inside_fn(code: &str, block: ScopedBlock) {
             assert_eq!(

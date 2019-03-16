@@ -1,5 +1,5 @@
 use super::util;
-use error::{self, SpanError};
+use crate::error::{self, SpanError};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
