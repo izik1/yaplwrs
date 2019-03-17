@@ -1,5 +1,5 @@
 use crate::ast;
-use crate::token::{Token, self};
+use crate::token::{self, Token};
 use crate::util::Span;
 use itertools::PeekingNext;
 use std::iter::Peekable;
@@ -90,7 +90,10 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
             tokens.next().unwrap();
             if tokens.peek()?.token_type == token::Kind::Keyword(token::Keyword::If) {
                 tokens.next().unwrap();
-                elseifs.push(ast::ElseIf(box parse_expr(tokens)?, parse_scoped_block(tokens)?));
+                elseifs.push(ast::ElseIf(
+                    box parse_expr(tokens)?,
+                    parse_scoped_block(tokens)?,
+                ));
             } else {
                 block_else = Some(parse_scoped_block(tokens)?);
                 break;
@@ -100,7 +103,12 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
         }
     }
 
-    Ok(ast::If(box cond, block, elseifs.into_boxed_slice(), block_else))
+    Ok(ast::If(
+        box cond,
+        block,
+        elseifs.into_boxed_slice(),
+        block_else,
+    ))
 }
 
 fn parse_var_with_type<T: Iterator<Item = Token>>(
@@ -125,7 +133,8 @@ fn parse_call<T: Iterator<Item = Token>>(
             break;
         } else {
             args.push(parse_expr(tokens)?);
-            tokens.peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::Comma));
+            tokens
+                .peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::Comma));
         }
     }
 
@@ -135,7 +144,7 @@ fn parse_call<T: Iterator<Item = Token>>(
 fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Primary> {
     let token = tokens.next()?;
     match token.token_type {
-        token:: Kind::Ident(ref id) => {
+        token::Kind::Ident(ref id) => {
             let id = ast::Ident(id.clone());
             if tokens.peek()?.token_type == token::Kind::Grammar(token::Grammar::OpenParen) {
                 parse_call(tokens, id)
@@ -144,7 +153,9 @@ fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Re
             }
         }
 
-        token::Kind::Integer(ref i, ref suffix) => Ok(ast::Primary::Integer(i.clone(), suffix.clone())),
+        token::Kind::Integer(ref i, ref suffix) => {
+            Ok(ast::Primary::Integer(i.clone(), suffix.clone()))
+        }
         token::Kind::Keyword(token::Keyword::If) => Ok(ast::Primary::If(parse_if(tokens)?)),
         _ => Err(Error::InvalidPrimaryExpression(token.span)),
     }
@@ -162,7 +173,8 @@ fn parse_bin_expr<T: Iterator<Item = Token>>(
 ) -> Result<ast::Expr> {
     fn precedence_compare(a: ast::BinOperator, b: ast::BinOperator) -> bool {
         a.precedence() > b.precedence()
-            || (a.precedence() == b.precedence() && (a.associativity() == ast::Associativity::Right))
+            || (a.precedence() == b.precedence()
+                && (a.associativity() == ast::Associativity::Right))
     }
 
     let mut lookahead = tokens.peek()?;

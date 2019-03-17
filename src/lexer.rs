@@ -70,7 +70,10 @@ mod tests {
     fn invalid_operator() {
         assert_eq!(
             Lexer::new("%").unwrap().collect_vec(),
-            vec![Token::new(Span::new(0, 1), token::Kind::Err("%".to_string())),]
+            vec![Token::new(
+                Span::new(0, 1),
+                token::Kind::Err("%".to_string())
+            ),]
         )
     }
 

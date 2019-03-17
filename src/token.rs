@@ -19,8 +19,9 @@ impl Token {
 
     pub fn matches(&self, expected: &Kind) -> bool {
         match (&self.token_type, expected) {
-            (&Kind::Integer(_, _), &Kind::Integer(_, _))
-            | (&Kind::Ident(_), &Kind::Ident(_)) => true,
+            (&Kind::Integer(_, _), &Kind::Integer(_, _)) | (&Kind::Ident(_), &Kind::Ident(_)) => {
+                true
+            }
             _ => &self.token_type == expected,
         }
     }
@@ -50,9 +51,7 @@ impl fmt::Display for Kind {
         match *self {
             Kind::Grammar(ref g) => write!(f, "GRAMMAR[{}]", g),
             Kind::Ident(ref id) => write!(f, "IDENT[{}]", id),
-            Kind::Integer(ref i, Some(ref ty)) if ty != "i32" => {
-                write!(f, "INTEGER[{}_{}]", i, ty)
-            }
+            Kind::Integer(ref i, Some(ref ty)) if ty != "i32" => write!(f, "INTEGER[{}_{}]", i, ty),
             Kind::Integer(ref i, _) => write!(f, "INTEGER[{}]", i),
             Kind::Keyword(ref k) => write!(f, "KEYWORD[{}]", k),
             Kind::Err(ref s) => write!(f, "ERROR[{}]", s),

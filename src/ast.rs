@@ -70,11 +70,7 @@ impl Display for FunctionHeader {
 }
 
 impl FunctionHeader {
-    pub fn new(
-        identifier: Ident,
-        args: Box<[(Ident, Ident)]>,
-        ret_type: Option<Ident>,
-    ) -> Self {
+    pub fn new(identifier: Ident, args: Box<[(Ident, Ident)]>, ret_type: Option<Ident>) -> Self {
         Self {
             identifier,
             args,
@@ -241,10 +237,9 @@ impl BinOperator {
 
     pub fn associativity(self) -> Associativity {
         match self {
-            BinOperator::Add
-            | BinOperator::Sub
-            | BinOperator::Bin
-            | BinOperator::Div => Associativity::Left,
+            BinOperator::Add | BinOperator::Sub | BinOperator::Bin | BinOperator::Div => {
+                Associativity::Left
+            }
         }
     }
 }
