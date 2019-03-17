@@ -30,6 +30,12 @@ impl Token {
     }
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "TOKEN[{}@{}]", self.token_type, self.span)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     Grammar(Grammar),
@@ -42,12 +48,14 @@ pub enum TokenType {
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TokenType::Grammar(ref g) => write!(f, "{}", g),
-            TokenType::Ident(ref id) => write!(f, "{}", id),
-            TokenType::Integer(ref i, Some(ref ty)) if ty != "i32" => write!(f, "{}_{}", i, ty),
-            TokenType::Integer(ref i, _) => write!(f, "{}", i),
-            TokenType::Keyword(ref k) => write!(f, "{}", k),
-            TokenType::Err(ref s) => write!(f, "{}", s),
+            TokenType::Grammar(ref g) => write!(f, "GRAMMAR[{}]", g),
+            TokenType::Ident(ref id) => write!(f, "IDENT[{}]", id),
+            TokenType::Integer(ref i, Some(ref ty)) if ty != "i32" => {
+                write!(f, "INTEGER[{}_{}]", i, ty)
+            }
+            TokenType::Integer(ref i, _) => write!(f, "INTEGER[{}]", i),
+            TokenType::Keyword(ref k) => write!(f, "KEYWORD[{}]", k),
+            TokenType::Err(ref s) => write!(f, "ERROR[{}]", s),
         }
     }
 }
@@ -66,10 +74,10 @@ impl fmt::Display for Keyword {
             f,
             "{}",
             match *self {
-                Keyword::Const => "const",
-                Keyword::Function => "fn",
-                Keyword::If => "if",
-                Keyword::Else => "else",
+                Keyword::Const => "CONST",
+                Keyword::Function => "FN",
+                Keyword::If => "IF",
+                Keyword::Else => "ELSE",
             }
         )
     }
@@ -97,18 +105,18 @@ impl fmt::Display for Grammar {
             f,
             "{}",
             match *self {
-                Grammar::Arrow => "->",
-                Grammar::OpenParen => "(",
-                Grammar::CloseParen => ")",
-                Grammar::OpenBrace => "{",
-                Grammar::CloseBrace => "}",
-                Grammar::Plus => "+",
-                Grammar::Minus => "-",
-                Grammar::Star => "*",
-                Grammar::Slash => "/",
-                Grammar::SemiColon => ";",
-                Grammar::Colon => ":",
-                Grammar::Comma => ",",
+                Grammar::Arrow => "ARROW",
+                Grammar::OpenParen => "LEFT_PAREN",
+                Grammar::CloseParen => "RIGHT_PAREN",
+                Grammar::OpenBrace => "LEFT_BRACKET",
+                Grammar::CloseBrace => "RIGHT_BRACKET",
+                Grammar::Plus => "PLUS",
+                Grammar::Minus => "MINUS",
+                Grammar::Star => "STAR",
+                Grammar::Slash => "SLASH",
+                Grammar::SemiColon => "SEMICOLON",
+                Grammar::Colon => "COLON",
+                Grammar::Comma => "COMMA",
             }
         )
     }

@@ -1,7 +1,6 @@
 use crate::ast::*;
 use crate::token::*;
 use crate::util::Span;
-use itertools::Itertools;
 use itertools::PeekingNext;
 use std::iter::Peekable;
 

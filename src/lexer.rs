@@ -58,9 +58,7 @@ mod tests {
     #[test]
     fn colon_is_colon() {
         assert_eq!(
-            Lexer::new(&format!("{}", TokenType::Grammar(Grammar::Colon)))
-                .unwrap()
-                .collect_vec(),
+            Lexer::new(":").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 1),
                 TokenType::Grammar(Grammar::Colon),
@@ -71,9 +69,7 @@ mod tests {
     #[test]
     fn invalid_operator() {
         assert_eq!(
-            Lexer::new(&format!("{}", TokenType::Err("%".to_string())))
-                .unwrap()
-                .collect_vec(),
+            Lexer::new("%").unwrap().collect_vec(),
             vec![Token::new(Span::new(0, 1), TokenType::Err("%".to_string())),]
         )
     }
@@ -101,6 +97,7 @@ mod tests {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn is_keyword(s: &str) -> bool {
     keyword_map().contains_key(s)
 }

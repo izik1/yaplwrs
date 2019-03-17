@@ -1,8 +1,8 @@
 extern crate yaplwrs;
 
 fn main() {
-    match yaplwrs::parse("") {
-        Ok(_) => {}
+    match yaplwrs::parse("fn foo() -> bar {}") {
+        Ok(n) => eprintln!("tree: {}", n),
         Err(e) => eprintln!("{:?}", e),
     }
 }

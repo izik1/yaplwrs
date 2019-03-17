@@ -1,10 +1,29 @@
 use std::fmt;
+use std::fmt::Display;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Ident(pub String);
 
+impl Display for Ident {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "IDENT[{}]", self.0)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct ScopedBlock(pub Box<[AstNode]>);
+
+impl Display for ScopedBlock {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "SCOPEDBLOCK[")?;
+
+        for node in self.0.iter() {
+            write!(f, "{},", node)?;
+        }
+
+        write!(f, "]")
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Function {
@@ -18,11 +37,36 @@ impl Function {
     }
 }
 
+impl Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FUNCTION[{},{}]", self.header, self.body)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionHeader {
     pub identifier: Ident,
     pub args: Box<[(Ident, Ident)]>,
     pub ret_type: Option<Ident>,
+}
+
+impl Display for FunctionHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "HEADER[{},ARGS[", self.identifier)?;
+
+        for (name, ty) in self.args.iter() {
+            write!(f, "ARG[NAME[{}],TYPE[{}]],", name, ty)?;
+        }
+
+        write!(f, "],RET[")?;
+
+        match self.ret_type.as_ref() {
+            Some(id) => write!(f, "{}", id)?,
+            None => write!(f, "()")?,
+        };
+
+        write!(f, "]]")
+    }
 }
 
 impl FunctionHeader {
@@ -47,8 +91,31 @@ pub struct If(
     pub Option<ScopedBlock>,
 );
 
+impl Display for If {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "IF[COND[{}],BLOCK[{}],ELSEIFS[", self.0, self.1)?;
+        for elif in self.2.iter() {
+            write!(f, "{},", elif)?;
+        }
+
+        write!(f, "],")?;
+
+        if let Some(block) = self.3.as_ref() {
+            write!(f, "ELSE[{}]", block)?;
+        }
+
+        write!(f, "]")
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct ElseIf(pub Box<Expr>, pub ScopedBlock);
+
+impl Display for ElseIf {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ELSEIF[COND[{}],BLOCK[{}]]", self.0, self.1)
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Primary {
@@ -56,6 +123,29 @@ pub enum Primary {
     Integer(String, Option<String>),
     Ident(Ident),
     FunctionCall(Ident, Box<[Expr]>),
+}
+
+impl Display for Primary {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "PRIMARY[")?;
+
+        match self {
+            Primary::If(e) => write!(f, "{}", e)?,
+            Primary::Integer(number, Some(base)) => write!(f, "INTEGER[{}_{}]", number, base)?,
+            Primary::Integer(number, None) => write!(f, "INTEGER[{}]", number)?,
+            Primary::Ident(id) => write!(f, "{}", id)?,
+            Primary::FunctionCall(name, params) => {
+                write!(f, "CALL[NAME[{}],PARAMS[", name)?;
+                for param in params.iter() {
+                    write!(f, "{},", param)?;
+                }
+
+                write!(f, "]]")?
+            }
+        }
+
+        write!(f, "]")
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -91,10 +181,10 @@ impl fmt::Display for BinOperator {
             f,
             "{}",
             match *self {
-                BinOperator::BinAdd => "+",
-                BinOperator::BinSub => "-",
-                BinOperator::BinMul => "*",
-                BinOperator::BinDiv => "/",
+                BinOperator::BinAdd => "ADD",
+                BinOperator::BinSub => "SUBTRACT",
+                BinOperator::BinMul => "MULTIPLY",
+                BinOperator::BinDiv => "DIVIDE",
             }
         )
     }
@@ -103,6 +193,18 @@ impl fmt::Display for BinOperator {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum UnaryOperator {
     UnNeg,
+}
+
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                UnaryOperator::UnNeg => "NEGATE",
+            }
+        )
+    }
 }
 
 impl UnaryOperator {
@@ -154,6 +256,22 @@ pub enum Expr {
     Primary(Primary),
 }
 
+impl Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "EXPR[")?;
+
+        match self {
+            Expr::Binary(op, lhs, rhs) => write!(f, "OP[{}],LHS[{}],RHS[{}]", op, lhs, rhs)?,
+
+            Expr::Unary(op, expr) => write!(f, "OP[{}],SUB[{}]", op, expr)?,
+
+            Expr::Primary(primary) => write!(f, "{}", primary)?,
+        };
+
+        write!(f, "]")
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum AstNode {
     Token(crate::token::Token),
@@ -161,4 +279,26 @@ pub enum AstNode {
     Function(Function),
     ScopedBlock(ScopedBlock),
     Expr(Expr),
+}
+
+impl Display for AstNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ASTNODE[")?;
+        match self {
+            AstNode::Token(token) => write!(f, "{}", token)?,
+            AstNode::Mod(nodes) => {
+                write!(f, "MOD[")?;
+                for node in nodes.iter() {
+                    write!(f, "{},", node)?;
+                }
+
+                write!(f, "]")?
+            }
+            AstNode::Function(func) => write!(f, "{}", func)?,
+            AstNode::ScopedBlock(block) => write!(f, "{}", block)?,
+            AstNode::Expr(expr) => write!(f, "{}", expr)?,
+        };
+
+        write!(f, "]")
+    }
 }
