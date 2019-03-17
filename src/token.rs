@@ -1,43 +1,43 @@
 use super::util;
-use crate::error::{self, SpanError};
+use crate::error::{self, Span};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub span: util::Span,
-    pub token_type: TokenType,
+    pub token_type: Kind,
 }
 
 impl Token {
-    pub fn require(&self, expected: &TokenType) -> Result<&Token, error::SpanError> {
+    pub fn require(&self, expected: &Kind) -> Result<&Self, error::Span> {
         if self.matches(expected) {
             Ok(self)
         } else {
-            Err(SpanError::new("Unexpected token".to_string(), self.span))
+            Err(Span::new("Unexpected token".to_string(), self.span))
         }
     }
 
-    pub fn matches(&self, expected: &TokenType) -> bool {
+    pub fn matches(&self, expected: &Kind) -> bool {
         match (&self.token_type, expected) {
-            (&TokenType::Integer(_, _), &TokenType::Integer(_, _))
-            | (&TokenType::Ident(_), &TokenType::Ident(_)) => true,
+            (&Kind::Integer(_, _), &Kind::Integer(_, _))
+            | (&Kind::Ident(_), &Kind::Ident(_)) => true,
             _ => &self.token_type == expected,
         }
     }
 
-    pub fn new(span: util::Span, token_type: TokenType) -> Token {
-        Token { span, token_type }
+    pub fn new(span: util::Span, token_type: Kind) -> Self {
+        Self { span, token_type }
     }
 }
 
 impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "TOKEN[{}@{}]", self.token_type, self.span)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TokenType {
+pub enum Kind {
     Grammar(Grammar),
     Ident(String),
     Integer(String, Option<String>),
@@ -45,17 +45,17 @@ pub enum TokenType {
     Err(String),
 }
 
-impl fmt::Display for TokenType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl fmt::Display for Kind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            TokenType::Grammar(ref g) => write!(f, "GRAMMAR[{}]", g),
-            TokenType::Ident(ref id) => write!(f, "IDENT[{}]", id),
-            TokenType::Integer(ref i, Some(ref ty)) if ty != "i32" => {
+            Kind::Grammar(ref g) => write!(f, "GRAMMAR[{}]", g),
+            Kind::Ident(ref id) => write!(f, "IDENT[{}]", id),
+            Kind::Integer(ref i, Some(ref ty)) if ty != "i32" => {
                 write!(f, "INTEGER[{}_{}]", i, ty)
             }
-            TokenType::Integer(ref i, _) => write!(f, "INTEGER[{}]", i),
-            TokenType::Keyword(ref k) => write!(f, "KEYWORD[{}]", k),
-            TokenType::Err(ref s) => write!(f, "ERROR[{}]", s),
+            Kind::Integer(ref i, _) => write!(f, "INTEGER[{}]", i),
+            Kind::Keyword(ref k) => write!(f, "KEYWORD[{}]", k),
+            Kind::Err(ref s) => write!(f, "ERROR[{}]", s),
         }
     }
 }
@@ -69,7 +69,7 @@ pub enum Keyword {
 }
 
 impl fmt::Display for Keyword {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -100,7 +100,7 @@ pub enum Grammar {
 }
 
 impl fmt::Display for Grammar {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",

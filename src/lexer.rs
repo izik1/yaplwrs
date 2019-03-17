@@ -1,4 +1,4 @@
-use crate::token::*;
+use crate::token::{self, Token};
 use crate::util::Span;
 use std::{collections::HashMap, iter::Peekable, str::Chars};
 
@@ -18,14 +18,14 @@ mod tests {
     proptest! {
         #[test]
         fn assert_no_panics(ref s in ".*") {
-            let _ = Lexer::new(s).map(<Lexer as Itertools>::collect_vec);
+            let _ = Lexer::new(s).map(<Lexer<'_> as Itertools>::collect_vec);
         }
 
         #[test]
         fn ident(ref s in "[A-Za-z_][A-Za-z_0-9]*") {
             assert_eq!(
                 Lexer::new(s).unwrap().collect_vec(),
-                vec![Token::new(Span::new(0, s.len()), TokenType::Ident(s.to_string()))]
+                vec![Token::new(Span::new(0, s.len()), token::Kind::Ident(s.to_string()))]
              );
 
         }
@@ -34,7 +34,7 @@ mod tests {
         fn suffixed_number(ref num in "[0-9][0-9_]*", ref suffix in "[A-Za-z][A-Za-z_]*") {
             assert_eq!(
                 Lexer::new(&format!("{}{}", num, suffix)).unwrap().collect_vec(),
-                vec![Token::new(Span::new(0, num.len() + suffix.len()), TokenType::Integer(str::replace(num, "_", ""), Some(suffix.to_string())))]
+                vec![Token::new(Span::new(0, num.len() + suffix.len()), token::Kind::Integer(str::replace(num, "_", ""), Some(suffix.to_string())))]
              );
         }
     }
@@ -49,8 +49,8 @@ mod tests {
         assert_eq!(
             Lexer::new("a A2").unwrap().collect_vec(),
             vec![
-                Token::new(Span::new(0, 1), TokenType::Ident("a".to_string())),
-                Token::new(Span::new(2, 2), TokenType::Ident("A2".to_string())),
+                Token::new(Span::new(0, 1), token::Kind::Ident("a".to_string())),
+                Token::new(Span::new(2, 2), token::Kind::Ident("A2".to_string())),
             ]
         )
     }
@@ -61,7 +61,7 @@ mod tests {
             Lexer::new(":").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 1),
-                TokenType::Grammar(Grammar::Colon),
+                token::Kind::Grammar(token::Grammar::Colon),
             )]
         )
     }
@@ -70,7 +70,7 @@ mod tests {
     fn invalid_operator() {
         assert_eq!(
             Lexer::new("%").unwrap().collect_vec(),
-            vec![Token::new(Span::new(0, 1), TokenType::Err("%".to_string())),]
+            vec![Token::new(Span::new(0, 1), token::Kind::Err("%".to_string())),]
         )
     }
 
@@ -80,7 +80,7 @@ mod tests {
             Lexer::new("(").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 1),
-                TokenType::Grammar(Grammar::OpenParen),
+                token::Kind::Grammar(token::Grammar::OpenParen),
             )]
         )
     }
@@ -91,7 +91,7 @@ mod tests {
             Lexer::new("->").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 2),
-                TokenType::Grammar(Grammar::Arrow),
+                token::Kind::Grammar(token::Grammar::Arrow),
             )]
         )
     }
@@ -102,29 +102,29 @@ pub(crate) fn is_keyword(s: &str) -> bool {
     keyword_map().contains_key(s)
 }
 
-fn keyword_map() -> HashMap<&'static str, TokenType> {
+fn keyword_map() -> HashMap<&'static str, token::Kind> {
     hashmap! [
-        "const" => TokenType::Keyword(Keyword::Const),
-        "fn" => TokenType::Keyword(Keyword::Function),
-        "if" => TokenType::Keyword(Keyword::If),
-        "else" => TokenType::Keyword(Keyword::Else),
+        "const" => token::Kind::Keyword(token::Keyword::Const),
+        "fn" => token::Kind::Keyword(token::Keyword::Function),
+        "if" => token::Kind::Keyword(token::Keyword::If),
+        "else" => token::Kind::Keyword(token::Keyword::Else),
     ]
 }
 
-fn operator_map() -> HashMap<&'static str, Grammar> {
+fn operator_map() -> HashMap<&'static str, token::Grammar> {
     hashmap![
-        "->" => Grammar::Arrow,
-        "(" => Grammar::OpenParen,
-        ")" => Grammar::CloseParen,
-        "{" => Grammar::OpenBrace,
-        "}" => Grammar::CloseBrace,
-        ";" => Grammar::SemiColon,
-        ":" => Grammar::Colon,
-        "," => Grammar::Comma,
-        "+" => Grammar::Plus,
-        "-" => Grammar::Minus,
-        "*" => Grammar::Star,
-        "/" => Grammar::Slash,
+        "->" => token::Grammar::Arrow,
+        "(" => token::Grammar::OpenParen,
+        ")" => token::Grammar::CloseParen,
+        "{" => token::Grammar::OpenBrace,
+        "}" => token::Grammar::CloseBrace,
+        ";" => token::Grammar::SemiColon,
+        ":" => token::Grammar::Colon,
+        "," => token::Grammar::Comma,
+        "+" => token::Grammar::Plus,
+        "-" => token::Grammar::Minus,
+        "*" => token::Grammar::Star,
+        "/" => token::Grammar::Slash,
     ]
 }
 
@@ -184,7 +184,7 @@ impl<'a> Lexer<'a> {
 
         Token::new(
             Span::new(start, self.pos - start),
-            TokenType::Integer(num, suffix),
+            token::Kind::Integer(num, suffix),
         )
     }
 
@@ -200,17 +200,17 @@ impl<'a> Lexer<'a> {
             keyword_map()
                 .get(token_string)
                 .cloned()
-                .unwrap_or_else(|| TokenType::Ident(token_string.to_string())),
+                .unwrap_or_else(|| token::Kind::Ident(token_string.to_string())),
         );
 
         Token::new(
             Span::new(start, self.pos - start),
             match &self.input[start..self.pos] {
-                "const" => TokenType::Keyword(Keyword::Const),
-                "fn" => TokenType::Keyword(Keyword::Function),
-                "if" => TokenType::Keyword(Keyword::If),
-                "else" => TokenType::Keyword(Keyword::Else),
-                id => TokenType::Ident(id.to_string()),
+                "const" => token::Kind::Keyword(token::Keyword::Const),
+                "fn" => token::Kind::Keyword(token::Keyword::Function),
+                "if" => token::Kind::Keyword(token::Keyword::If),
+                "else" => token::Kind::Keyword(token::Keyword::Else),
+                id => token::Kind::Ident(id.to_string()),
             },
         )
     }
@@ -237,9 +237,9 @@ impl<'a> Lexer<'a> {
         let span = Span::new(start, pos - start);
 
         let tt = if let Some(op) = ops.get(&self.input[start..pos]) {
-            TokenType::Grammar(*op)
+            token::Kind::Grammar(*op)
         } else {
-            TokenType::Err(self.input[start..pos].to_string())
+            token::Kind::Err(self.input[start..pos].to_string())
         };
 
         Token::new(span, tt)
@@ -261,7 +261,7 @@ impl<'a> Lexer<'a> {
         let span = Span::new(start, self.pos);
         Token::new(
             span,
-            TokenType::Err(self.input[start..self.pos].to_string()),
+            token::Kind::Err(self.input[start..self.pos].to_string()),
         )
     }
 
@@ -269,8 +269,8 @@ impl<'a> Lexer<'a> {
         self.skip_while(|c| c.is_whitespace());
         if let Some(lookahead) = self.chars.peek() {
             Some(match lookahead {
-                '0'...'9' => self.lex_number(),
-                'A'...'Z' | 'a'...'z' | '_' => self.lex_ident(),
+                '0'..='9' => self.lex_number(),
+                'A'..='Z' | 'a'..='z' | '_' => self.lex_ident(),
                 c => {
                     if operator_map().keys().any(|k| k.starts_with(*c)) {
                         self.lex_operator()

@@ -20,7 +20,7 @@ pub fn lex(string: &str) -> Result<Vec<token::Token>, error::Error> {
     Ok(lexer::Lexer::new(string)?.collect_vec())
 }
 
-pub fn parse(string: &str) -> Result<ast::AstNode, error::Error> {
+pub fn parse(string: &str) -> Result<ast::Node, error::Error> {
     Ok(parser::parse(lexer::Lexer::new(string)?)?)
 }
 
@@ -30,14 +30,14 @@ mod tests {
 
     mod parse {
         use super::*;
-        use crate::ast::*;
+        use crate::ast;
 
-        fn prim_int(val: i32) -> Expr {
-            Expr::Primary(Primary::Integer(val.to_string(), None))
+        fn prim_int(val: i32) -> ast::Expr {
+            ast::Expr::Primary(ast::Primary::Integer(val.to_string(), None))
         }
 
-        fn ident(id: &str) -> Ident {
-            Ident(id.to_string())
+        fn ident(id: &str) -> ast::Ident {
+            ast::Ident(id.to_string())
         }
 
         mod function {
@@ -50,10 +50,10 @@ mod tests {
                 println!("fn {}() -> {{}}", id);
                      prop_assert_eq!(
                         parse(&format!("fn {}() {{}}", id)).unwrap(),
-                        AstNode::Mod(box [
-                            AstNode::Function(Function::new(
-                                FunctionHeader::new(ident(id), box [], None),
-                                ScopedBlock(box []),
+                        ast::Node::Mod(box [
+                            ast::Node::Function(ast::Function::new(
+                                ast::FunctionHeader::new(ident(id), box [], None),
+                                ast::ScopedBlock(box []),
                             ))
                         ])
                     )

@@ -1,15 +1,15 @@
 use super::{lexer, parser};
-use crate::util::Span;
+use crate::util;
 use std::convert;
 
 #[derive(Debug, Clone)]
-pub struct SpanError {
+pub struct Span {
     pub message: String,
-    pub span: Span,
+    pub span: util::Span,
 }
 
-impl SpanError {
-    pub fn new(message: String, span: Span) -> Self {
+impl Span {
+    pub fn new(message: String, span: util::Span) -> Self {
         Self { message, span }
     }
 }
@@ -18,7 +18,7 @@ impl SpanError {
 pub enum Error {
     Lexer(lexer::Error),
     Parser(parser::Error),
-    Span(SpanError),
+    Span(Span),
     String(String),
     Other(&'static str),
     ICE(Option<Span>),
@@ -36,8 +36,8 @@ impl convert::From<parser::Error> for Error {
     }
 }
 
-impl convert::From<SpanError> for Error {
-    fn from(e: SpanError) -> Self {
+impl convert::From<Span> for Error {
+    fn from(e: Span) -> Self {
         Error::Span(e)
     }
 }

@@ -1,5 +1,5 @@
-use crate::ast::*;
-use crate::token::*;
+use crate::ast;
+use crate::token::{Token, self};
 use crate::util::Span;
 use itertools::PeekingNext;
 use std::iter::Peekable;
@@ -10,11 +10,11 @@ pub enum Error {
     ReservedToken(String, Span),
     IncorrectToken {
         span: Span,
-        expected: TokenType,
-        actual: TokenType,
+        expected: token::Kind,
+        actual: token::Kind,
     },
     InvalidPrimaryExpression(Span),
-    UnexpectedToken(Span, TokenType),
+    UnexpectedToken(Span, token::Kind),
 }
 
 type Result<T> = ::std::result::Result<T, Error>;
@@ -25,7 +25,7 @@ struct TokenIterator<T: Iterator<Item = Token>> {
 
 impl<T: Iterator<Item = Token>> TokenIterator<T> {
     pub fn new(tokens: T) -> Self {
-        TokenIterator {
+        Self {
             tokens: tokens.peekable(),
         }
     }
@@ -41,7 +41,7 @@ impl<T: Iterator<Item = Token>> TokenIterator<T> {
         self.tokens.peeking_next(accept)
     }
 
-    pub fn move_required(&mut self, token_type: &TokenType) -> Result<()> {
+    pub fn move_required(&mut self, token_type: &token::Kind) -> Result<()> {
         let tok = self.next()?;
         if tok.matches(token_type) {
             Ok(())
@@ -59,38 +59,38 @@ impl<T: Iterator<Item = Token>> TokenIterator<T> {
     }
 }
 
-pub fn parse<T: Iterator<Item = Token>>(tokens: T) -> Result<AstNode> {
+pub fn parse<T: Iterator<Item = Token>>(tokens: T) -> Result<ast::Node> {
     parse_mod(TokenIterator::new(tokens))
 }
 
-fn parse_unary_expr<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<Expr> {
+fn parse_unary_expr<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Expr> {
     let token = tokens.peek()?;
 
-    if let Some(op) = UnaryOperator::from_token_type(&token.token_type) {
+    if let Some(op) = ast::UnaryOperator::from_token_type(&token.token_type) {
         tokens.next()?;
-        return Ok(Expr::Unary(op, box parse_unary_expr(tokens)?));
+        return Ok(ast::Expr::Unary(op, box parse_unary_expr(tokens)?));
     }
 
     match token.token_type {
-        TokenType::Grammar(Grammar::Plus) => {
+        token::Kind::Grammar(token::Grammar::Plus) => {
             Err(Error::ReservedToken("Unary Plus".to_string(), token.span))
         }
-        _ => Ok(Expr::Primary(parse_primary(tokens)?)),
+        _ => Ok(ast::Expr::Primary(parse_primary(tokens)?)),
     }
 }
 
 // NOTE: this assumes that the caller already ate the "if" token, and doesn't check for it.
-fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<If> {
+fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::If> {
     let cond = parse_expr(tokens)?;
     let block = parse_scoped_block(tokens)?;
     let mut elseifs = vec![];
     let mut block_else = None;
     loop {
-        if tokens.peek()?.token_type == TokenType::Keyword(Keyword::Else) {
+        if tokens.peek()?.token_type == token::Kind::Keyword(token::Keyword::Else) {
             tokens.next().unwrap();
-            if tokens.peek()?.token_type == TokenType::Keyword(Keyword::If) {
+            if tokens.peek()?.token_type == token::Kind::Keyword(token::Keyword::If) {
                 tokens.next().unwrap();
-                elseifs.push(ElseIf(box parse_expr(tokens)?, parse_scoped_block(tokens)?));
+                elseifs.push(ast::ElseIf(box parse_expr(tokens)?, parse_scoped_block(tokens)?));
             } else {
                 block_else = Some(parse_scoped_block(tokens)?);
                 break;
@@ -100,73 +100,73 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
         }
     }
 
-    Ok(If(box cond, block, elseifs.into_boxed_slice(), block_else))
+    Ok(ast::If(box cond, block, elseifs.into_boxed_slice(), block_else))
 }
 
 fn parse_var_with_type<T: Iterator<Item = Token>>(
     tokens: &mut TokenIterator<T>,
-) -> Result<(Ident, Ident)> {
+) -> Result<(ast::Ident, ast::Ident)> {
     let name = next_ident(tokens)?;
-    tokens.move_required(&TokenType::Grammar(Grammar::Colon))?;
+    tokens.move_required(&token::Kind::Grammar(token::Grammar::Colon))?;
     Ok((name, next_ident(tokens)?))
 }
 
 fn parse_call<T: Iterator<Item = Token>>(
     tokens: &mut TokenIterator<T>,
-    id: Ident,
-) -> Result<Primary> {
-    tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
+    id: ast::Ident,
+) -> Result<ast::Primary> {
+    tokens.move_required(&token::Kind::Grammar(token::Grammar::OpenParen))?;
     let mut args = vec![];
     loop {
         if tokens
-            .peeking_next(|tok| tok.token_type == TokenType::Grammar(Grammar::CloseParen))
+            .peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::CloseParen))
             .is_some()
         {
             break;
         } else {
             args.push(parse_expr(tokens)?);
-            tokens.peeking_next(|tok| tok.token_type == TokenType::Grammar(Grammar::Comma));
+            tokens.peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::Comma));
         }
     }
 
-    Ok(Primary::FunctionCall(id, args.into_boxed_slice()))
+    Ok(ast::Primary::FunctionCall(id, args.into_boxed_slice()))
 }
 
-fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<Primary> {
+fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Primary> {
     let token = tokens.next()?;
     match token.token_type {
-        TokenType::Ident(ref id) => {
-            let id = Ident(id.clone());
-            if tokens.peek()?.token_type == TokenType::Grammar(Grammar::OpenParen) {
+        token:: Kind::Ident(ref id) => {
+            let id = ast::Ident(id.clone());
+            if tokens.peek()?.token_type == token::Kind::Grammar(token::Grammar::OpenParen) {
                 parse_call(tokens, id)
             } else {
-                Ok(Primary::Ident(id))
+                Ok(ast::Primary::Ident(id))
             }
         }
 
-        TokenType::Integer(ref i, ref suffix) => Ok(Primary::Integer(i.clone(), suffix.clone())),
-        TokenType::Keyword(Keyword::If) => Ok(Primary::If(parse_if(tokens)?)),
+        token::Kind::Integer(ref i, ref suffix) => Ok(ast::Primary::Integer(i.clone(), suffix.clone())),
+        token::Kind::Keyword(token::Keyword::If) => Ok(ast::Primary::If(parse_if(tokens)?)),
         _ => Err(Error::InvalidPrimaryExpression(token.span)),
     }
 }
 
-fn parse_expr<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<Expr> {
+fn parse_expr<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Expr> {
     let lhs = parse_unary_expr(tokens)?;
     parse_bin_expr(tokens, lhs, 0)
 }
 
 fn parse_bin_expr<T: Iterator<Item = Token>>(
     tokens: &mut TokenIterator<T>,
-    mut lhs: Expr,
+    mut lhs: ast::Expr,
     min_priority: usize,
-) -> Result<Expr> {
-    fn precedence_compare(a: BinOperator, b: BinOperator) -> bool {
+) -> Result<ast::Expr> {
+    fn precedence_compare(a: ast::BinOperator, b: ast::BinOperator) -> bool {
         a.precedence() > b.precedence()
-            || (a.precedence() == b.precedence() && (a.associativity() == Associativity::Right))
+            || (a.precedence() == b.precedence() && (a.associativity() == ast::Associativity::Right))
     }
 
     let mut lookahead = tokens.peek()?;
-    while let Some(op) = BinOperator::from_token_type(&lookahead.token_type) {
+    while let Some(op) = ast::BinOperator::from_token_type(&lookahead.token_type) {
         if op.precedence() < min_priority {
             break;
         }
@@ -176,7 +176,7 @@ fn parse_bin_expr<T: Iterator<Item = Token>>(
         let mut rhs = parse_unary_expr(tokens)?;
         lookahead = tokens.peek()?;
 
-        while let Some(lookahead_op) = BinOperator::from_token_type(&lookahead.token_type) {
+        while let Some(lookahead_op) = ast::BinOperator::from_token_type(&lookahead.token_type) {
             if !precedence_compare(lookahead_op, op) {
                 break;
             }
@@ -185,7 +185,7 @@ fn parse_bin_expr<T: Iterator<Item = Token>>(
             lookahead = tokens.peek()?;
         }
 
-        lhs = Expr::Binary(op, box lhs, box rhs);
+        lhs = ast::Expr::Binary(op, box lhs, box rhs);
     }
 
     Ok(lhs)
@@ -193,52 +193,52 @@ fn parse_bin_expr<T: Iterator<Item = Token>>(
 
 fn parse_scoped_block<T: Iterator<Item = Token>>(
     tokens: &mut TokenIterator<T>,
-) -> Result<ScopedBlock> {
-    tokens.move_required(&TokenType::Grammar(Grammar::OpenBrace))?;
+) -> Result<ast::ScopedBlock> {
+    tokens.move_required(&token::Kind::Grammar(token::Grammar::OpenBrace))?;
 
-    let mut vec: Vec<AstNode> = Vec::new();
+    let mut vec: Vec<ast::Node> = Vec::new();
 
     loop {
         match tokens.peek()?.token_type {
-            TokenType::Grammar(Grammar::OpenBrace) => {
-                vec.push(AstNode::ScopedBlock(parse_scoped_block(tokens)?))
+            token::Kind::Grammar(token::Grammar::OpenBrace) => {
+                vec.push(ast::Node::ScopedBlock(parse_scoped_block(tokens)?))
             }
 
-            TokenType::Grammar(Grammar::CloseBrace) => {
+            token::Kind::Grammar(token::Grammar::CloseBrace) => {
                 tokens.next().unwrap();
                 break;
             }
 
-            _ => vec.push(AstNode::Expr(parse_expr(tokens)?)),
+            _ => vec.push(ast::Node::Expr(parse_expr(tokens)?)),
         };
     }
 
-    Ok(ScopedBlock(vec.into_boxed_slice()))
+    Ok(ast::ScopedBlock(vec.into_boxed_slice()))
 }
 
-fn next_ident<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<Ident> {
+fn next_ident<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Ident> {
     let tok = tokens.next()?;
     match tok.token_type {
-        TokenType::Ident(ref s) => Ok(Ident(s.clone())),
+        token::Kind::Ident(ref s) => Ok(ast::Ident(s.clone())),
         _ => Err(Error::IncorrectToken {
             span: tok.span,
-            expected: TokenType::Ident("".to_string()),
+            expected: token::Kind::Ident("".to_string()),
             actual: tok.token_type.clone(),
         }),
     }
 }
 
-fn parse_fn<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<AstNode> {
-    tokens.move_required(&TokenType::Keyword(Keyword::Function))?;
+fn parse_fn<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Node> {
+    tokens.move_required(&token::Kind::Keyword(token::Keyword::Function))?;
     let name = next_ident(tokens)?;
-    tokens.move_required(&TokenType::Grammar(Grammar::OpenParen))?;
+    tokens.move_required(&token::Kind::Grammar(token::Grammar::OpenParen))?;
 
-    let mut args: Vec<(Ident, Ident)> = Vec::new();
+    let mut args: Vec<(ast::Ident, ast::Ident)> = Vec::new();
 
-    if let TokenType::Ident(_) = tokens.peek()?.token_type {
+    if let token::Kind::Ident(_) = tokens.peek()?.token_type {
         loop {
             args.push(parse_var_with_type(tokens)?);
-            if tokens.peek()?.token_type == TokenType::Grammar(Grammar::Comma) {
+            if tokens.peek()?.token_type == token::Kind::Grammar(token::Grammar::Comma) {
                 tokens.next().unwrap();
             } else {
                 break;
@@ -246,27 +246,27 @@ fn parse_fn<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
         }
     }
 
-    tokens.move_required(&TokenType::Grammar(Grammar::CloseParen))?;
+    tokens.move_required(&token::Kind::Grammar(token::Grammar::CloseParen))?;
 
     let return_type = tokens
-        .peeking_next(|tok| tok.token_type == TokenType::Grammar(Grammar::Arrow))
+        .peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::Arrow))
         .map(|_| next_ident(tokens))
         .transpose()?;
 
-    Ok(AstNode::Function(Function::new(
-        FunctionHeader::new(name, args.into_boxed_slice(), return_type),
+    Ok(ast::Node::Function(ast::Function::new(
+        ast::FunctionHeader::new(name, args.into_boxed_slice(), return_type),
         parse_scoped_block(tokens)?,
     )))
 }
 
-fn parse_mod<T: Iterator<Item = Token>>(mut tokens: TokenIterator<T>) -> Result<AstNode> {
-    let mut vec: Vec<AstNode> = Vec::new();
+fn parse_mod<T: Iterator<Item = Token>>(mut tokens: TokenIterator<T>) -> Result<ast::Node> {
+    let mut vec: Vec<ast::Node> = Vec::new();
     while let Ok(token) = tokens.peek() {
         match token.token_type {
-            TokenType::Keyword(Keyword::Function) => vec.push(parse_fn(&mut tokens)?),
+            token::Kind::Keyword(token::Keyword::Function) => vec.push(parse_fn(&mut tokens)?),
             _ => return Err(Error::UnexpectedToken(token.span, token.token_type.clone())),
         };
     }
 
-    Ok(AstNode::Mod(vec.into_boxed_slice()))
+    Ok(ast::Node::Mod(vec.into_boxed_slice()))
 }

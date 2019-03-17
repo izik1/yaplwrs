@@ -1,4 +1,4 @@
-extern crate yaplwrs;
+use yaplwrs;
 
 fn main() {
     match yaplwrs::parse("fn foo() -> bar {}") {

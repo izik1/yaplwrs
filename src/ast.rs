@@ -5,16 +5,16 @@ use std::fmt::Display;
 pub struct Ident(pub String);
 
 impl Display for Ident {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "IDENT[{}]", self.0)
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ScopedBlock(pub Box<[AstNode]>);
+pub struct ScopedBlock(pub Box<[Node]>);
 
 impl Display for ScopedBlock {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SCOPEDBLOCK[")?;
 
         for node in self.0.iter() {
@@ -33,12 +33,12 @@ pub struct Function {
 
 impl Function {
     pub fn new(header: FunctionHeader, body: ScopedBlock) -> Self {
-        Function { header, body }
+        Self { header, body }
     }
 }
 
 impl Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "FUNCTION[{},{}]", self.header, self.body)
     }
 }
@@ -51,7 +51,7 @@ pub struct FunctionHeader {
 }
 
 impl Display for FunctionHeader {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "HEADER[{},ARGS[", self.identifier)?;
 
         for (name, ty) in self.args.iter() {
@@ -74,8 +74,8 @@ impl FunctionHeader {
         identifier: Ident,
         args: Box<[(Ident, Ident)]>,
         ret_type: Option<Ident>,
-    ) -> FunctionHeader {
-        FunctionHeader {
+    ) -> Self {
+        Self {
             identifier,
             args,
             ret_type,
@@ -92,7 +92,7 @@ pub struct If(
 );
 
 impl Display for If {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "IF[COND[{}],BLOCK[{}],ELSEIFS[", self.0, self.1)?;
         for elif in self.2.iter() {
             write!(f, "{},", elif)?;
@@ -112,7 +112,7 @@ impl Display for If {
 pub struct ElseIf(pub Box<Expr>, pub ScopedBlock);
 
 impl Display for ElseIf {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ELSEIF[COND[{}],BLOCK[{}]]", self.0, self.1)
     }
 }
@@ -126,7 +126,7 @@ pub enum Primary {
 }
 
 impl Display for Primary {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "PRIMARY[")?;
 
         match self {
@@ -155,7 +155,7 @@ pub enum Associativity {
 }
 
 impl fmt::Display for Associativity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -169,22 +169,22 @@ impl fmt::Display for Associativity {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum BinOperator {
-    BinAdd,
-    BinSub,
-    BinMul,
-    BinDiv,
+    Add,
+    Sub,
+    Bin,
+    Div,
 }
 
 impl fmt::Display for BinOperator {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
             match *self {
-                BinOperator::BinAdd => "ADD",
-                BinOperator::BinSub => "SUBTRACT",
-                BinOperator::BinMul => "MULTIPLY",
-                BinOperator::BinDiv => "DIVIDE",
+                BinOperator::Add => "ADD",
+                BinOperator::Sub => "SUBTRACT",
+                BinOperator::Bin => "MULTIPLY",
+                BinOperator::Div => "DIVIDE",
             }
         )
     }
@@ -196,7 +196,7 @@ pub enum UnaryOperator {
 }
 
 impl fmt::Display for UnaryOperator {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -208,24 +208,24 @@ impl fmt::Display for UnaryOperator {
 }
 
 impl UnaryOperator {
-    pub fn from_token_type(ty: &crate::token::TokenType) -> Option<Self> {
-        use crate::token::{Grammar, TokenType};
+    pub fn from_token_type(ty: &crate::token::Kind) -> Option<Self> {
+        use crate::token::{Grammar, Kind};
         match *ty {
-            TokenType::Grammar(Grammar::Minus) => Some(UnaryOperator::UnNeg),
+            Kind::Grammar(Grammar::Minus) => Some(UnaryOperator::UnNeg),
             _ => None,
         }
     }
 }
 
 impl BinOperator {
-    pub fn from_token_type(ty: &crate::token::TokenType) -> Option<Self> {
-        use crate::token::{Grammar, TokenType};
+    pub fn from_token_type(ty: &crate::token::Kind) -> Option<Self> {
+        use crate::token::{Grammar, Kind};
         match *ty {
-            TokenType::Grammar(ref g) => match *g {
-                Grammar::Plus => Some(BinOperator::BinAdd),
-                Grammar::Slash => Some(BinOperator::BinDiv),
-                Grammar::Minus => Some(BinOperator::BinSub),
-                Grammar::Star => Some(BinOperator::BinMul),
+            Kind::Grammar(ref g) => match *g {
+                Grammar::Plus => Some(BinOperator::Add),
+                Grammar::Slash => Some(BinOperator::Div),
+                Grammar::Minus => Some(BinOperator::Sub),
+                Grammar::Star => Some(BinOperator::Bin),
                 _ => None,
             },
             _ => None,
@@ -234,17 +234,17 @@ impl BinOperator {
 
     pub fn precedence(self) -> usize {
         match self {
-            BinOperator::BinAdd | BinOperator::BinSub => 150,
-            BinOperator::BinMul | BinOperator::BinDiv => 200,
+            BinOperator::Add | BinOperator::Sub => 150,
+            BinOperator::Bin | BinOperator::Div => 200,
         }
     }
 
     pub fn associativity(self) -> Associativity {
         match self {
-            BinOperator::BinAdd
-            | BinOperator::BinSub
-            | BinOperator::BinMul
-            | BinOperator::BinDiv => Associativity::Left,
+            BinOperator::Add
+            | BinOperator::Sub
+            | BinOperator::Bin
+            | BinOperator::Div => Associativity::Left,
         }
     }
 }
@@ -257,7 +257,7 @@ pub enum Expr {
 }
 
 impl Display for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "EXPR[")?;
 
         match self {
@@ -273,20 +273,25 @@ impl Display for Expr {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum AstNode {
+pub enum Node {
     Token(crate::token::Token),
-    Mod(Box<[AstNode]>),
+    Mod(Box<[Node]>),
     Function(Function),
     ScopedBlock(ScopedBlock),
     Expr(Expr),
 }
 
-impl Display for AstNode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+pub enum AstFoo {
+    FooBar,
+    FooBaz,
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ASTNODE[")?;
         match self {
-            AstNode::Token(token) => write!(f, "{}", token)?,
-            AstNode::Mod(nodes) => {
+            Node::Token(token) => write!(f, "{}", token)?,
+            Node::Mod(nodes) => {
                 write!(f, "MOD[")?;
                 for node in nodes.iter() {
                     write!(f, "{},", node)?;
@@ -294,9 +299,9 @@ impl Display for AstNode {
 
                 write!(f, "]")?
             }
-            AstNode::Function(func) => write!(f, "{}", func)?,
-            AstNode::ScopedBlock(block) => write!(f, "{}", block)?,
-            AstNode::Expr(expr) => write!(f, "{}", expr)?,
+            Node::Function(func) => write!(f, "{}", func)?,
+            Node::ScopedBlock(block) => write!(f, "{}", block)?,
+            Node::Expr(expr) => write!(f, "{}", expr)?,
         };
 
         write!(f, "]")
