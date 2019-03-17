@@ -281,11 +281,6 @@ pub enum Node {
     Expr(Expr),
 }
 
-pub enum AstFoo {
-    FooBar,
-    FooBaz,
-}
-
 impl Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ASTNODE[")?;
