@@ -84,24 +84,20 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
     let cond = parse_expr(tokens)?;
     let block = parse_scoped_block(tokens)?;
     let mut elseifs = vec![];
-    let mut block_else = None;
-    loop {
-        if tokens.peek()?.token_type == token::Kind::Keyword(token::Keyword::Else) {
-            tokens.next().unwrap();
-            if tokens.peek()?.token_type == token::Kind::Keyword(token::Keyword::If) {
-                tokens.next().unwrap();
+    let block_else = loop {
+        if let Some(_) = tokens.peeking_next(|tok| tok.token_type == token::Keyword::Else.into()) {
+            if let Some(_) = tokens.peeking_next(|tok| tok.token_type == token::Keyword::If.into()) {
                 elseifs.push(ast::ElseIf(
                     box parse_expr(tokens)?,
                     parse_scoped_block(tokens)?,
                 ));
             } else {
-                block_else = Some(parse_scoped_block(tokens)?);
-                break;
+                break Some(parse_scoped_block(tokens)?);
             }
         } else {
-            break;
+            break None;
         }
-    }
+    };
 
     Ok(ast::If(
         box cond,
@@ -125,17 +121,12 @@ fn parse_call<T: Iterator<Item = Token>>(
 ) -> Result<ast::Primary> {
     tokens.move_required(&token::Kind::Grammar(token::Grammar::OpenParen))?;
     let mut args = vec![];
-    loop {
-        if tokens
-            .peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::CloseParen))
-            .is_some()
-        {
-            break;
-        } else {
-            args.push(parse_expr(tokens)?);
-            tokens
-                .peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::Comma));
-        }
+    while !tokens
+        .peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::CloseParen))
+        .is_some()
+    {
+        args.push(parse_expr(tokens)?);
+        tokens.peeking_next(|tok| tok.token_type == token::Kind::Grammar(token::Grammar::Comma));
     }
 
     Ok(ast::Primary::FunctionCall(id, args.into_boxed_slice()))

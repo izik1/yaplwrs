@@ -59,10 +59,7 @@ mod tests {
     fn colon_is_colon() {
         assert_eq!(
             Lexer::new(":").unwrap().collect_vec(),
-            vec![Token::new(
-                Span::new(0, 1),
-                token::Kind::Grammar(token::Grammar::Colon),
-            )]
+            vec![Token::new(Span::new(0, 1), token::Grammar::Colon.into(),)]
         )
     }
 
@@ -83,7 +80,7 @@ mod tests {
             Lexer::new("(").unwrap().collect_vec(),
             vec![Token::new(
                 Span::new(0, 1),
-                token::Kind::Grammar(token::Grammar::OpenParen),
+                token::Grammar::OpenParen.into(),
             )]
         )
     }
@@ -92,10 +89,7 @@ mod tests {
     fn op_longest_match() {
         assert_eq!(
             Lexer::new("->").unwrap().collect_vec(),
-            vec![Token::new(
-                Span::new(0, 2),
-                token::Kind::Grammar(token::Grammar::Arrow),
-            )]
+            vec![Token::new(Span::new(0, 2), token::Grammar::Arrow.into(),)]
         )
     }
 }
@@ -107,10 +101,10 @@ pub(crate) fn is_keyword(s: &str) -> bool {
 
 fn keyword_map() -> HashMap<&'static str, token::Kind> {
     hashmap! [
-        "const" => token::Kind::Keyword(token::Keyword::Const),
-        "fn" => token::Kind::Keyword(token::Keyword::Function),
-        "if" => token::Kind::Keyword(token::Keyword::If),
-        "else" => token::Kind::Keyword(token::Keyword::Else),
+        "const" => token::Keyword::Const.into(),
+        "fn" => token::Keyword::Function.into(),
+        "if" => token::Keyword::If.into(),
+        "else" => token::Keyword::Else.into(),
     ]
 }
 
@@ -204,17 +198,6 @@ impl<'a> Lexer<'a> {
                 .get(token_string)
                 .cloned()
                 .unwrap_or_else(|| token::Kind::Ident(token_string.to_string())),
-        );
-
-        Token::new(
-            Span::new(start, self.pos - start),
-            match &self.input[start..self.pos] {
-                "const" => token::Kind::Keyword(token::Keyword::Const),
-                "fn" => token::Kind::Keyword(token::Keyword::Function),
-                "if" => token::Kind::Keyword(token::Keyword::If),
-                "else" => token::Kind::Keyword(token::Keyword::Else),
-                id => token::Kind::Ident(id.to_string()),
-            },
         )
     }
 
@@ -240,7 +223,7 @@ impl<'a> Lexer<'a> {
         let span = Span::new(start, pos - start);
 
         let tt = if let Some(op) = ops.get(&self.input[start..pos]) {
-            token::Kind::Grammar(*op)
+            (*op).into()
         } else {
             token::Kind::Err(self.input[start..pos].to_string())
         };

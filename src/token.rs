@@ -82,6 +82,12 @@ impl fmt::Display for Keyword {
     }
 }
 
+impl From<Keyword> for Kind {
+    fn from(other: Keyword) -> Self {
+        Kind::Keyword(other)
+    }
+}
+
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Grammar {
     Arrow,
@@ -118,5 +124,11 @@ impl fmt::Display for Grammar {
                 Grammar::Comma => "COMMA",
             }
         )
+    }
+}
+
+impl From<Grammar> for Kind {
+    fn from(other: Grammar) -> Self {
+        Kind::Grammar(other)
     }
 }
