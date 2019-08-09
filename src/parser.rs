@@ -86,7 +86,8 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
     let mut elseifs = vec![];
     let block_else = loop {
         if let Some(_) = tokens.peeking_next(|tok| tok.token_type == token::Keyword::Else.into()) {
-            if let Some(_) = tokens.peeking_next(|tok| tok.token_type == token::Keyword::If.into()) {
+            if let Some(_) = tokens.peeking_next(|tok| tok.token_type == token::Keyword::If.into())
+            {
                 elseifs.push(ast::ElseIf(
                     box parse_expr(tokens)?,
                     parse_scoped_block(tokens)?,
