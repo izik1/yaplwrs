@@ -44,9 +44,21 @@ impl Display for Function {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct FunctionArg {
+    pub ident: Ident,
+    pub ty: Ident,
+}
+
+impl Display for FunctionArg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ARG[NAME[{}],TYPE[{}]]", self.ident, self.ty)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct FunctionHeader {
     pub identifier: Ident,
-    pub args: Box<[(Ident, Ident)]>,
+    pub args: Box<[FunctionArg]>,
     pub ret_type: Option<Ident>,
 }
 
@@ -54,8 +66,8 @@ impl Display for FunctionHeader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "HEADER[{},ARGS[", self.identifier)?;
 
-        for (name, ty) in self.args.iter() {
-            write!(f, "ARG[NAME[{}],TYPE[{}]],", name, ty)?;
+        for arg in &*self.args {
+            write!(f, "{},", arg)?;
         }
 
         write!(f, "],RET[")?;
@@ -70,7 +82,7 @@ impl Display for FunctionHeader {
 }
 
 impl FunctionHeader {
-    pub fn new(identifier: Ident, args: Box<[(Ident, Ident)]>, ret_type: Option<Ident>) -> Self {
+    pub fn new(identifier: Ident, args: Box<[FunctionArg]>, ret_type: Option<Ident>) -> Self {
         Self {
             identifier,
             args,

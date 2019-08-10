@@ -110,10 +110,10 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
 
 fn parse_var_with_type<T: Iterator<Item = Token>>(
     tokens: &mut TokenIterator<T>,
-) -> Result<(ast::Ident, ast::Ident)> {
-    let name = next_ident(tokens)?;
+) -> Result<ast::FunctionArg> {
+    let ident = next_ident(tokens)?;
     tokens.move_required(&token::Kind::Grammar(token::Grammar::Colon))?;
-    Ok((name, next_ident(tokens)?))
+    Ok(ast::FunctionArg { ident, ty: next_ident(tokens)? })
 }
 
 fn parse_call<T: Iterator<Item = Token>>(
@@ -213,6 +213,9 @@ fn parse_scoped_block<T: Iterator<Item = Token>>(
                 break;
             }
 
+            // todo: Allow for stuff in the format: `{ expr; expr; expr; }` all on the same line
+            // this is the only way to tell `{ ident + ident; (expr) }` from `ident + call(expr)`
+            // this should _deny_ code that looks like this: `expr expr` or `expr {}`
             _ => vec.push(ast::Node::Expr(parse_expr(tokens)?)),
         };
     }
@@ -237,7 +240,7 @@ fn parse_fn<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
     let name = next_ident(tokens)?;
     tokens.move_required(&token::Kind::Grammar(token::Grammar::OpenParen))?;
 
-    let mut args: Vec<(ast::Ident, ast::Ident)> = Vec::new();
+    let mut args: Vec<ast::FunctionArg> = Vec::new();
 
     if let token::Kind::Ident(_) = tokens.peek()?.token_type {
         loop {
