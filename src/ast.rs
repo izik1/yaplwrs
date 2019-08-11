@@ -281,7 +281,6 @@ impl Display for Expr {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Node {
-    Token(crate::token::Token),
     Mod(Box<[Node]>),
     Function(Function),
     ScopedBlock(ScopedBlock),
@@ -292,7 +291,6 @@ impl Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ASTNODE[")?;
         match self {
-            Node::Token(token) => write!(f, "{}", token)?,
             Node::Mod(nodes) => {
                 write!(f, "MOD[")?;
                 for node in nodes.iter() {
