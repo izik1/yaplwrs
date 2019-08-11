@@ -79,8 +79,9 @@ fn parse_unary_expr<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) ->
     }
 }
 
-// NOTE: this assumes that the caller already ate the "if" token, and doesn't check for it.
 fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::If> {
+    tokens.move_required(&token::Kind::Keyword(token::Keyword::If))?;
+
     let cond = parse_expr(tokens)?;
     let block = parse_scoped_block(tokens)?;
     let mut elseifs = vec![];
@@ -134,10 +135,12 @@ fn parse_call<T: Iterator<Item = Token>>(
 }
 
 fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Primary> {
-    let token = tokens.next()?;
+    let token = tokens.peek()?;
     match token.token_type {
         token::Kind::Ident(ref id) => {
             let id = ast::Ident(id.clone());
+            tokens.next().expect("ICE: expected next after peek");
+
             if tokens.peek()?.token_type == token::Kind::Grammar(token::Grammar::OpenParen) {
                 parse_call(tokens, id)
             } else {
@@ -146,9 +149,13 @@ fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Re
         }
 
         token::Kind::Integer(ref i, ref suffix) => {
-            Ok(ast::Primary::Integer(i.clone(), suffix.clone()))
+            let res = Ok(ast::Primary::Integer(i.clone(), suffix.clone()));
+            tokens.next().expect("ICE: expected next after peek");
+            res
+
         }
         token::Kind::Keyword(token::Keyword::If) => Ok(ast::Primary::If(parse_if(tokens)?)),
+        token::Kind::Grammar(token::Grammar::OpenBrace) => Ok(ast::Primary::ScopedBlock(parse_scoped_block(tokens)?)),
         _ => Err(Error::InvalidPrimaryExpression(token.span)),
     }
 }
@@ -202,12 +209,9 @@ fn parse_scoped_block<T: Iterator<Item = Token>>(
 
     let mut vec: Vec<ast::Node> = Vec::new();
 
+    //
     loop {
         match tokens.peek()?.token_type {
-            token::Kind::Grammar(token::Grammar::OpenBrace) => {
-                vec.push(ast::Node::ScopedBlock(parse_scoped_block(tokens)?))
-            }
-
             token::Kind::Grammar(token::Grammar::CloseBrace) => {
                 tokens.next().unwrap();
                 break;
@@ -216,7 +220,9 @@ fn parse_scoped_block<T: Iterator<Item = Token>>(
             // todo: Allow for stuff in the format: `{ expr; expr; expr; }` all on the same line
             // this is the only way to tell `{ ident + ident; (expr) }` from `ident + call(expr)`
             // this should _deny_ code that looks like this: `expr expr` or `expr {}`
-            _ => vec.push(ast::Node::Expr(parse_expr(tokens)?)),
+            _ => {
+                vec.push(ast::Node::Expr(parse_expr(tokens)?));
+            },
         };
     }
 

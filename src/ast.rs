@@ -131,6 +131,7 @@ pub enum Primary {
     Integer(String, Option<String>),
     Ident(Ident),
     FunctionCall(Ident, Box<[Expr]>),
+    ScopedBlock(ScopedBlock)
 }
 
 impl Display for Primary {
@@ -149,7 +150,8 @@ impl Display for Primary {
                 }
 
                 write!(f, "]]")?
-            }
+            },
+            Primary::ScopedBlock(block) => write!(f, "{}", block)?,
         }
 
         write!(f, "]")
