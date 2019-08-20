@@ -3,6 +3,7 @@ name = "yaplwrs"
 version = "0.1.0"
 authors = ["Chloe Ross <orangesnowfox@gmail.com>"]
 edition = "2018"
+build = "build.rs"
 
 [lib]
 name = "yaplwrs"
@@ -15,3 +16,7 @@ itertools = "0.8.0"
 
 [dev-dependencies]
 failure = "0.1.5"
+
+[build-dependencies]
+quote = "1.0"
+proc-macro2 = "1.0.1"

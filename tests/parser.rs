@@ -2,8 +2,11 @@ use std::fs::{read_dir, read_to_string, File};
 use std::io::Write;
 use yaplwrs::parse;
 
+include!(concat!(env!("OUT_DIR"), "/tests/parser/pass.rs"));
+
 #[test]
-fn test() -> Result<(), failure::Error> {
+#[ignore]
+fn all() -> Result<(), failure::Error> {
     let path = std::env::current_dir()
         .expect("current dir is nonexistant?")
         .join("tests/parser");
