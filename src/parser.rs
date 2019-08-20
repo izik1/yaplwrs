@@ -208,7 +208,7 @@ fn parse_scoped_block<T: Iterator<Item = Token>>(
     tokens.move_required(&token::Kind::Grammar(token::Grammar::OpenBrace))?;
 
     let mut vec: Vec<ast::Node> = Vec::new();
-
+    let mut implicit_ret: Option<Box<ast::Expr>> = None;
     //
     loop {
         match tokens.peek()?.token_type {
@@ -217,16 +217,28 @@ fn parse_scoped_block<T: Iterator<Item = Token>>(
                 break;
             }
 
-            // todo: Allow for stuff in the format: `{ expr; expr; expr; }` all on the same line
-            // this is the only way to tell `{ ident + ident; (expr) }` from `ident + call(expr)`
-            // this should _deny_ code that looks like this: `expr expr` or `expr {}`
+            token::Kind::Grammar(token::Grammar::SemiColon) => {
+                // empty statement
+                tokens.next().unwrap();
+                continue;
+            }
+
+            // todo: write tests for _denying_ code that looks like this: `expr expr` or `expr {}`
             _ => {
-                vec.push(ast::Node::Expr(parse_expr(tokens)?));
+                let expr = parse_expr(tokens)?;
+                if tokens.peek()?.token_type == token::Kind::Grammar(token::Grammar::SemiColon) {
+                    vec.push(ast::Node::Expr(expr));
+                    tokens.next().unwrap();
+                } else {
+                    implicit_ret = Some(box expr);
+                    tokens.move_required(&token::Kind::Grammar(token::Grammar::CloseBrace))?;
+                    break;
+                }
             },
         };
     }
 
-    Ok(ast::ScopedBlock(vec.into_boxed_slice()))
+    Ok(ast::ScopedBlock(vec.into_boxed_slice(), implicit_ret))
 }
 
 fn next_ident<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<ast::Ident> {

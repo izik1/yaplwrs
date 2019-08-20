@@ -53,7 +53,7 @@ mod tests {
                         ast::Node::Mod(box [
                             ast::Node::Function(ast::Function::new(
                                 ast::FunctionHeader::new(ident(id), box [], None),
-                                ast::ScopedBlock(box []),
+                                ast::ScopedBlock(box [], None),
                             ))
                         ])
                     )

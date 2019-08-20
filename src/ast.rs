@@ -11,14 +11,22 @@ impl Display for Ident {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ScopedBlock(pub Box<[Node]>);
+pub struct ScopedBlock(pub Box<[Node]>, pub Option<Box<Expr>>);
 
 impl Display for ScopedBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SCOPEDBLOCK[")?;
+        write!(f, "SCOPEDBLOCK[STMTS[")?;
 
         for node in self.0.iter() {
             write!(f, "{},", node)?;
+        }
+
+        write!(f, "],IMPLICITRET[")?;
+
+        if let Some(implicit_return) = &self.1 {
+            write!(f, "SOME[{}]]", implicit_return)?;
+        } else {
+            write!(f, "NONE]")?;
         }
 
         write!(f, "]")
