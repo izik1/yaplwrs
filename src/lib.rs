@@ -1,5 +1,3 @@
-#![feature(box_syntax)]
-
 #[macro_use]
 extern crate maplit;
 
@@ -50,12 +48,12 @@ mod tests {
                 println!("fn {}() -> {{}}", id);
                      prop_assert_eq!(
                         parse(&format!("fn {}() {{}}", id)).unwrap(),
-                        ast::Node::Mod(box [
+                        ast::Node::Mod(Box::new([
                             ast::Node::Function(ast::Function::new(
-                                ast::FunctionHeader::new(ident(id), box [], None),
-                                ast::ScopedBlock(box [], None),
+                                ast::FunctionHeader::new(ident(id), Box::new([]), None),
+                                ast::ScopedBlock(Box::new([]), None),
                             ))
-                        ])
+                        ]))
                     )
                 }
             }

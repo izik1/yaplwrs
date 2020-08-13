@@ -1,11 +1,16 @@
-#[macro_use] extern crate quote;
+#[macro_use]
+extern crate quote;
 extern crate proc_macro2;
 use std::env;
-use std::fs::{File, self};
+use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-fn create_parser_test(fn_name: proc_macro2::Ident, in_path: &str, check_path: &str) -> proc_macro2::TokenStream {
+fn create_parser_test(
+    fn_name: proc_macro2::Ident,
+    in_path: &str,
+    check_path: &str,
+) -> proc_macro2::TokenStream {
     quote! {
         #[test]
         fn #fn_name() -> Result<(), failure::Error> {
@@ -42,7 +47,11 @@ fn create_parser_tests(test_dir: &Path) -> proc_macro2::TokenStream {
         let fn_name = &in_path.file_stem().unwrap();
         let fn_name = &*fn_name.to_string_lossy();
         let fn_name = fn_name.replace("-", "_");
-        tokens.extend(create_parser_test(format_ident!("{}", fn_name), &in_path.to_string_lossy(), &check_path.to_string_lossy()));
+        tokens.extend(create_parser_test(
+            format_ident!("{}", fn_name),
+            &in_path.to_string_lossy(),
+            &check_path.to_string_lossy(),
+        ));
     }
 
     tokens
@@ -58,9 +67,9 @@ fn generate_tests() {
     let dest_path = &parser_tests.join("pass.rs");
     let mut f = File::create(&dest_path).unwrap();
 
-    let parser_tests_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR")
-        .expect("current dir is nonexistant?"))
-        .join("tests/parser");
+    let parser_tests_dir =
+        PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("current dir is nonexistant?"))
+            .join("tests/parser");
 
     // todo: make this "crate-root" or whatever
     let tests = create_parser_tests(&parser_tests_dir);

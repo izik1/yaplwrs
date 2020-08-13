@@ -68,7 +68,7 @@ fn parse_unary_expr<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) ->
 
     if let Some(op) = ast::UnaryOperator::from_token_type(&token.token_type) {
         tokens.next()?;
-        return Ok(ast::Expr::Unary(op, box parse_unary_expr(tokens)?));
+        return Ok(ast::Expr::Unary(op, Box::new(parse_unary_expr(tokens)?)));
     }
 
     match token.token_type {
@@ -90,7 +90,7 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
             if let Some(_) = tokens.peeking_next(|tok| tok.token_type == token::Keyword::If.into())
             {
                 elseifs.push(ast::ElseIf(
-                    box parse_expr(tokens)?,
+                    Box::new(parse_expr(tokens)?),
                     parse_scoped_block(tokens)?,
                 ));
             } else {
@@ -102,7 +102,7 @@ fn parse_if<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Result<
     };
 
     Ok(ast::If(
-        box cond,
+        Box::new(cond),
         block,
         elseifs.into_boxed_slice(),
         block_else,
@@ -114,7 +114,10 @@ fn parse_var_with_type<T: Iterator<Item = Token>>(
 ) -> Result<ast::FunctionArg> {
     let ident = next_ident(tokens)?;
     tokens.move_required(&token::Kind::Grammar(token::Grammar::Colon))?;
-    Ok(ast::FunctionArg { ident, ty: next_ident(tokens)? })
+    Ok(ast::FunctionArg {
+        ident,
+        ty: next_ident(tokens)?,
+    })
 }
 
 fn parse_call<T: Iterator<Item = Token>>(
@@ -152,10 +155,11 @@ fn parse_primary<T: Iterator<Item = Token>>(tokens: &mut TokenIterator<T>) -> Re
             let res = Ok(ast::Primary::Integer(i.clone(), suffix.clone()));
             tokens.next().expect("ICE: expected next after peek");
             res
-
         }
         token::Kind::Keyword(token::Keyword::If) => Ok(ast::Primary::If(parse_if(tokens)?)),
-        token::Kind::Grammar(token::Grammar::OpenBrace) => Ok(ast::Primary::ScopedBlock(parse_scoped_block(tokens)?)),
+        token::Kind::Grammar(token::Grammar::OpenBrace) => {
+            Ok(ast::Primary::ScopedBlock(parse_scoped_block(tokens)?))
+        }
         _ => Err(Error::InvalidPrimaryExpression(token.span)),
     }
 }
@@ -196,7 +200,7 @@ fn parse_bin_expr<T: Iterator<Item = Token>>(
             lookahead = tokens.peek()?;
         }
 
-        lhs = ast::Expr::Binary(op, box lhs, box rhs);
+        lhs = ast::Expr::Binary(op, Box::new(lhs), Box::new(rhs));
     }
 
     Ok(lhs)
@@ -230,11 +234,11 @@ fn parse_scoped_block<T: Iterator<Item = Token>>(
                     vec.push(ast::Node::Expr(expr));
                     tokens.next().unwrap();
                 } else {
-                    implicit_ret = Some(box expr);
+                    implicit_ret = Some(Box::new(expr));
                     tokens.move_required(&token::Kind::Grammar(token::Grammar::CloseBrace))?;
                     break;
                 }
-            },
+            }
         };
     }
 
